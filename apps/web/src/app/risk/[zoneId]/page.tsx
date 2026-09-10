@@ -11,8 +11,8 @@ export default function RiskZonePage({ params }: { params: { zoneId: string } })
           <div className="flex items-center gap-4 text-sm text-slate-600 mb-4">
             <span>Awaiting data connection</span>
           </div>
-          <p className="text-sm text-slate-500">
-            Explainability: This area exhibits recent slope movement (Sentinel-1 InSAR) combined with high soil moisture following intense rainfall.
+          <p className="text-sm text-slate-400 italic">
+            Explainability: Awaiting data connection for model factors...
           </p>
         </div>
         <EvidencePanel />

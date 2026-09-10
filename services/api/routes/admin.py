@@ -2,6 +2,10 @@ import logging
 from typing import Any, List
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from services.api.database import get_db
+from services.api.deps import require_role
+from services.api.models.user import UserRole, User
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -9,56 +13,54 @@ router = APIRouter()
 class UserRoleUpdate(BaseModel):
     role: str
 
-# In a real app, this would use a dependency to verify ADMIN role
-def verify_admin_role():
-    pass
-
 @router.get("/users")
-async def list_users(admin: Any = Depends(verify_admin_role)) -> Any:
+async def list_users(
+    admin: User = Depends(require_role([UserRole.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+) -> Any:
     """
     List all users. Admin only.
     """
-    # Fetch from DB
-    return [{"id": 1, "email": "test@example.com", "role": "USER"}]
+    raise NotImplementedError("Real DB queries must be implemented here. Fake data is prohibited.")
 
 @router.patch("/users/{user_id}/role")
 async def change_user_role(
-    user_id: int, 
+    user_id: str, 
     role_update: UserRoleUpdate,
-    admin: Any = Depends(verify_admin_role)
+    admin: User = Depends(require_role([UserRole.ADMIN])),
+    db: AsyncSession = Depends(get_db)
 ) -> Any:
     """
     Change user role. Admin only.
     """
-    valid_roles = ["USER", "ANALYST", "ADMIN"]
-    if role_update.role not in valid_roles:
-        raise HTTPException(status_code=400, detail="Invalid role")
-    return {"msg": f"User {user_id} role updated to {role_update.role}"}
+    raise NotImplementedError("Real DB queries must be implemented here. Fake data is prohibited.")
 
 @router.get("/audit-log")
-async def get_audit_log(admin: Any = Depends(verify_admin_role)) -> Any:
+async def get_audit_log(
+    admin: User = Depends(require_role([UserRole.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+) -> Any:
     """
     Get system audit trail.
     """
-    return [
-        {"timestamp": "2024-03-01T12:00:00Z", "user_id": 1, "action": "LOGIN", "resource": "SYSTEM"}
-    ]
+    raise NotImplementedError("Real DB queries must be implemented here. Fake data is prohibited.")
 
 @router.get("/data-quality")
-async def get_data_quality_dashboard(admin: Any = Depends(verify_admin_role)) -> Any:
+async def get_data_quality_dashboard(
+    admin: User = Depends(require_role([UserRole.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+) -> Any:
     """
     Data quality dashboard statistics.
     """
-    return {
-        "missing_values_percentage": 2.5,
-        "outliers_detected": 15,
-        "sensor_uptime": {"sensor_1": 99.9, "sensor_2": 95.0}
-    }
+    raise NotImplementedError("Real DB queries must be implemented here. Fake data is prohibited.")
 
 @router.delete("/cache")
-async def clear_cache(admin: Any = Depends(verify_admin_role)) -> Any:
+async def clear_cache(
+    admin: User = Depends(require_role([UserRole.ADMIN]))
+) -> Any:
     """
     Clear system cache. Admin only.
     """
-    # Clear Redis/Memcached here
-    return {"msg": "Cache cleared successfully"}
+    raise NotImplementedError("Real Redis interactions must be implemented here. Fake data is prohibited.")
+

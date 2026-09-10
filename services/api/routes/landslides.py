@@ -3,12 +3,13 @@ from typing import Any, Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, Query, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from services.api.database import get_db
+from services.api.deps import require_role
+from services.api.models.user import UserRole, User
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-def verify_analyst_role():
-    pass
 
 class LandslideEventCreate(BaseModel):
     lat: float
@@ -21,64 +22,48 @@ class LandslideEventCreate(BaseModel):
 async def query_landslides(
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
-    state: Optional[str] = None
+    state: Optional[str] = None,
+    db: AsyncSession = Depends(get_db)
 ) -> Any:
     """
     Query inventory with spatial/temporal filters.
     """
-    return [
-        {"id": "LS_001", "lat": 27.3, "lon": 88.6, "date": "2023-10-04T00:00:00Z", "severity": "HIGH"}
-    ]
+    raise NotImplementedError("Real DB queries must be implemented here. Fake data is prohibited.")
 
 @router.get("/stats")
-async def get_landslide_stats(state: Optional[str] = None) -> Any:
+async def get_landslide_stats(state: Optional[str] = None, db: AsyncSession = Depends(get_db)) -> Any:
     """
     Statistics per state.
     """
-    return {
-        "total_events": 150,
-        "high_severity": 45,
-        "state": state
-    }
+    raise NotImplementedError("Real DB queries must be implemented here. Fake data is prohibited.")
 
 @router.get("/density")
 async def get_landslide_density(
     lat: float = Query(...),
     lon: float = Query(...),
-    radius_km: float = Query(10.0)
+    radius_km: float = Query(10.0),
+    db: AsyncSession = Depends(get_db)
 ) -> Any:
     """
     Density computation.
     """
-    return {
-        "lat": lat,
-        "lon": lon,
-        "radius_km": radius_km,
-        "events_count": 5,
-        "density_per_sq_km": 5 / (3.14159 * radius_km * radius_km)
-    }
+    raise NotImplementedError("Real DB queries must be implemented here. Fake data is prohibited.")
 
 @router.get("/{event_id}")
-async def get_landslide_detail(event_id: str) -> Any:
+async def get_landslide_detail(event_id: str, db: AsyncSession = Depends(get_db)) -> Any:
     """
     Detail with full provenance.
     """
-    return {
-        "id": event_id,
-        "lat": 27.3,
-        "lon": 88.6,
-        "provenance": {
-            "source": "GSI_NLD",
-            "confidence_score": 0.95
-        }
-    }
+    raise NotImplementedError("Real DB queries must be implemented here. Fake data is prohibited.")
 
 @router.post("", status_code=201)
 async def add_landslide_event(
     event: LandslideEventCreate,
-    analyst: Any = Depends(verify_analyst_role)
+    analyst: User = Depends(require_role([UserRole.ANALYST, UserRole.SCIENTIST, UserRole.ADMIN])),
+    db: AsyncSession = Depends(get_db)
 ) -> Any:
     """
     Add new event (ANALYST+ role).
     """
-    return {"msg": "Event recorded", "id": "LS_NEW_001"}
+    raise NotImplementedError("Real DB inserts must be implemented here. Fake data is prohibited.")
+

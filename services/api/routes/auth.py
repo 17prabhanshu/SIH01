@@ -6,9 +6,12 @@ import jwt
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from services.api.database import get_db
+from services.api.config import settings
+from services.api.models.user import User
 
-# Mock config
-SECRET_KEY = "super_secret_key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
@@ -27,7 +30,7 @@ class UserCreate(BaseModel):
     full_name: str
 
 class UserResponse(BaseModel):
-    id: int
+    id: str
     email: EmailStr
     full_name: str
     role: str
@@ -42,43 +45,44 @@ def create_access_token(data: dict, expires_delta: timedelta) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + expires_delta
     to_encode.update({"exp": expire, "type": "access"})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
 
 def create_refresh_token(data: dict, expires_delta: timedelta) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + expires_delta
     to_encode.update({"exp": expire, "type": "refresh"})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-# In-memory mock DB for demonstration purposes since we don't have SQLAlchemy setup
-_users_db = {}
-_user_id_counter = 1
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register(user_in: UserCreate) -> Any:
-    global _user_id_counter
-    if any(u["email"] == user_in.email for u in _users_db.values()):
+async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -> Any:
+    result = await db.execute(select(User).where(User.email == user_in.email))
+    if result.scalars().first():
         raise HTTPException(
             status_code=400,
             detail="The user with this username already exists in the system.",
         )
     hashed_password = get_password_hash(user_in.password)
-    user = {
-        "id": _user_id_counter,
-        "email": user_in.email,
-        "full_name": user_in.full_name,
-        "hashed_password": hashed_password,
-        "role": "USER",
-    }
-    _users_db[_user_id_counter] = user
-    _user_id_counter += 1
-    return user
+    new_user = User(
+        email=user_in.email,
+        full_name=user_in.full_name,
+        hashed_password=hashed_password,
+        role="PUBLIC",
+    )
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+    return UserResponse(
+        id=str(new_user.id),
+        email=new_user.email,
+        full_name=new_user.full_name,
+        role=new_user.role.name
+    )
 
 @router.post("/login", response_model=Token)
-async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()) -> Any:
-    # Rate limiting should ideally be handled by a middleware like slowapi
-    user = next((u for u in _users_db.values() if u["email"] == form_data.username), None)
-    if not user or not verify_password(form_data.password, user["hashed_password"]):
+async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)) -> Any:
+    result = await db.execute(select(User).where(User.email == form_data.username))
+    user = result.scalars().first()
+    if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -86,10 +90,10 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     
     return {
         "access_token": create_access_token(
-            {"sub": str(user["id"])}, expires_delta=access_token_expires
+            {"sub": str(user.id)}, expires_delta=access_token_expires
         ),
         "refresh_token": create_refresh_token(
-            {"sub": str(user["id"])}, expires_delta=refresh_token_expires
+            {"sub": str(user.id)}, expires_delta=refresh_token_expires
         ),
         "token_type": "bearer",
     }
@@ -100,7 +104,7 @@ class RefreshTokenRequest(BaseModel):
 @router.post("/refresh", response_model=Token)
 async def refresh_token(request_data: RefreshTokenRequest) -> Any:
     try:
-        payload = jwt.decode(request_data.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(request_data.refresh_token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=401, detail="Invalid token type")
         user_id = payload.get("sub")
@@ -125,10 +129,4 @@ async def refresh_token(request_data: RefreshTokenRequest) -> Any:
 
 @router.get("/me", response_model=UserResponse)
 async def read_users_me(token: str = Depends(OAuth2PasswordRequestForm)) -> Any:
-    # In a real scenario, dependencies would resolve the current user
-    return {
-        "id": 1,
-        "email": "admin@example.com",
-        "full_name": "Admin User",
-        "role": "ADMIN"
-    }
+    raise NotImplementedError("Authentication dependency injection pending")

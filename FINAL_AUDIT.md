@@ -25,10 +25,15 @@ A microservices-based architecture utilizing FastAPI (backend), Celery (async pr
 - **NASA LHASA Framework**: Integrated concept, adapted for regional specific thresholds.
 - **Various Open-Source InSAR Pipelines**: Evaluated MintPy/ISCE2, integrated basic functionality for deformation monitoring.
 
-## Licenses Compatibility
-All utilized open-source libraries (FastAPI, React, SQLAlchemy, etc.) are under MIT, Apache 2.0, or BSD licenses, making them compatible with government and proprietary deployment models.
+### Licenses: Compatibility Matrix
 
-## Scientific Validation
+- **MintPy**: GPL-3.0 (Copyleft) -> **ACTION:** Forced GPL-3.0 adoption for the entire project. MintPy must be strictly isolated via Docker containers behind a REST/gRPC API to prevent full contamination of unrelated proprietary enterprise layers, but the primary codebase is released under GPL-3.0.
+- **LHASA**: NOSA v1.3 -> **ACTION:** GPL-incompatible. Must use via subprocess/API, never import as a library.
+- **TerraTorch**: Apache 2.0 -> Compatible.
+- **TorchGeo**: MIT -> Compatible.
+- **Landslide4Sense**: MIT + CC BY 4.0 -> Compatible (attribution required for dataset).
+- **SAR-LRA**: Unlicensed / CC BY 4.0 for weights -> Use weights only; avoid raw code.
+- **Displacement Forecasting**: UNLICENSED (All Rights Reserved) -> **ACTION:** Cannot use directly. Architectures (MLP, GRU) independently re-implemented.
 - **Validated**: Rainfall threshold exceedance correlation with historical landslides.
 - **Experimental**: Near real-time SAR displacement tracking (still under testing due to phase unwrapping complexities).
 
