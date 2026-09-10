@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ner-landslide
+  labels:
+    environment: production
+    project: ner-landslide-early-warning
