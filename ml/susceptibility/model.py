@@ -2,8 +2,8 @@ import json
 import numpy as np
 from typing import Dict, Any, Tuple, Optional, List
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.calibration import CalibratedClassifierCV
-from sklearn.metrics import roc_auc_score, average_precision_score, f1_score, precision_score, recall_score, brier_score_loss, calibration_curve
+from sklearn.calibration import CalibratedClassifierCV, calibration_curve
+from sklearn.metrics import roc_auc_score, average_precision_score, f1_score, precision_score, recall_score, brier_score_loss
 import logging
 
 logger = logging.getLogger(__name__)
@@ -93,18 +93,42 @@ class SusceptibilityModel:
             "calibration_error": float(calibration_error)
         }
         
-    def predict(self, features: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def predict(self, features: np.ndarray, metadata: Dict[str, Any]) -> Dict[str, Any]:
         """
         Predict susceptibility probabilities and estimate uncertainty.
+        Enforces strict inference contract and Out-Of-Domain checks.
         
         Args:
             features: 2D array of shape (n_samples, n_features)
+            metadata: dictionary containing request provenance (e.g. coordinates, CRS)
             
         Returns:
-            Tuple of (probabilities, uncertainties)
+            Dictionary matching structured inference contract.
         """
+        # Block inference if not trained (e.g., waiting for authoritative labels)
         if not self.is_trained:
-            raise RuntimeError("Model must be trained before calling predict.")
+            return {
+                "model_status": "BLOCKED",
+                "probability_status": "UNAVAILABLE",
+                "reason": "Model is blocked pending authoritative NER labels.",
+                "calibrated_probability": None,
+                "prediction": None,
+                "uncertainty": None
+            }
+            
+        # OOD Check (Geographic Domain)
+        # If the user feeds coordinates outside NER, flag it.
+        lat, lon = metadata.get("lat"), metadata.get("lon")
+        if lat is not None and lon is not None:
+            if not (21.9 <= lat <= 29.5 and 87.9 <= lon <= 97.4):
+                return {
+                    "model_status": "OUT_OF_DOMAIN",
+                    "probability_status": "UNAVAILABLE",
+                    "reason": "Requested coordinates are outside the NER validation bounding box.",
+                    "calibrated_probability": None,
+                    "prediction": None,
+                    "uncertainty": None
+                }
             
         probabilities = self.model.predict_proba(features)[:, 1]
         
@@ -122,12 +146,27 @@ class SusceptibilityModel:
             # Fallback uncertainty
             uncertainty = np.zeros_like(probabilities)
             
-        return probabilities, uncertainty
+        return {
+            "model_name": "susceptibility_rf",
+            "model_version": "1.0.0",
+            "task": "susceptibility_mapping",
+            "prediction": probabilities.tolist(),
+            "calibrated_probability": probabilities.tolist() if self.calibration else None,
+            "probability_status": "CALIBRATED" if self.calibration else "UNCALIBRATED",
+            "uncertainty": uncertainty.tolist(),
+            "feature_version": "v1.0",
+            "model_status": "PRODUCTION",
+            "geographic_scope": "NER",
+            "temporal_scope": "Static",
+            "provenance": metadata.get("provenance", "unknown"),
+            "limitations": ["Sensitive to DEM resolution"]
+        }
 
     def extract_feature_importance(self) -> Dict[str, float]:
         """Extract SHAP/Gini feature importance."""
         if not self.is_trained:
-            raise RuntimeError("Model not trained.")
+            logger.warning("Attempted to extract feature importance from a BLOCKED/UNTRAINED model.")
+            return {}
             
         if self.calibration:
             base_rf = self.model.estimator

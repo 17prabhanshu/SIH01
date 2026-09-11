@@ -127,11 +127,29 @@ class FusionPipeline:
             
         return {"evidence": evidence, "freshness": freshness, "missing": missing}
 
-    async def run_susceptibility_model(self, lat: float, lon: float, elevation: float = 0.0) -> Optional[float]:
-        """Run base susceptibility model.
-        STATUS = BLOCKED. Supervised training is pending authoritative NER labels.
+    async def run_susceptibility_model(self, lat: float, lon: float, elevation: float = 0.0) -> Tuple[Optional[float], str]:
         """
-        return None
+        Run base susceptibility model through strict ML inference contract.
+        Returns: (probability, status_reason)
+        """
+        from ml.susceptibility.model import SusceptibilityModel
+        import numpy as np
+        
+        # Instantiate model (in reality this would be loaded from registry/cache)
+        model = SusceptibilityModel(model_type="rf", calibration=True)
+        # Attempt to run predict (which will enforce OOD and BLOCKED checks)
+        dummy_features = np.array([[elevation, 0, 0]]) # Dummy for API parity
+        metadata = {"lat": lat, "lon": lon, "provenance": "API Request"}
+        
+        result = model.predict(dummy_features, metadata)
+        
+        if result["model_status"] == "BLOCKED" or result["probability_status"] == "UNAVAILABLE":
+            logger.info(f"ML Model blocked inference: {result['reason']}")
+            return None, result["model_status"]
+            
+        # Return probability from index 0 if it somehow succeeded
+        prob = result["prediction"][0] if result["prediction"] else None
+        return prob, result["model_status"]
 
     def run_rainfall_trigger_model(self, rainfall_24h: Optional[float], rainfall_72h: Optional[float], susceptibility: Optional[float]) -> Optional[float]:
         """Run rainfall trigger model (Heuristic)"""
@@ -289,8 +307,8 @@ class FusionPipeline:
         missing = data_collection["missing"]
         
         # 2. Run Models
-        susceptibility = await self.run_susceptibility_model(lat, lon, evidence.get("elevation", 0.0))
-        
+        susceptibility, ml_status = await self.run_susceptibility_model(lat, lon, evidence.get("elevation", 0.0))
+        freshness["ner_susceptibility_model"] = ml_status
         trigger_prob = self.run_rainfall_trigger_model(
             evidence.get("rainfall_24h"), 
             evidence.get("rainfall_72h"),

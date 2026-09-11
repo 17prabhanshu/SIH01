@@ -1,0 +1,76 @@
+{
+  "feature_version": "v1.0",
+  "description": "Candidate feature schema for NER susceptibility modelling.",
+  "features": {
+    "elevation": {
+      "source": "Copernicus DEM",
+      "units": "meters",
+      "spatial_resolution": "30m",
+      "temporal_resolution": "Static",
+      "preprocessing": ["Fill sinks", "Reproject to target CRS"],
+      "missing_data_behavior": "DROP_SAMPLE",
+      "provenance": "ESA/Copernicus",
+      "availability_status": "AVAILABLE"
+    },
+    "slope": {
+      "source": "Copernicus DEM Derived",
+      "units": "degrees",
+      "spatial_resolution": "30m",
+      "temporal_resolution": "Static",
+      "preprocessing": ["Horn's algorithm"],
+      "missing_data_behavior": "DROP_SAMPLE",
+      "provenance": "ESA/Copernicus",
+      "availability_status": "AVAILABLE"
+    },
+    "aspect": {
+      "source": "Copernicus DEM Derived",
+      "units": "degrees",
+      "spatial_resolution": "30m",
+      "temporal_resolution": "Static",
+      "preprocessing": ["Sine/Cosine transformation for circularity"],
+      "missing_data_behavior": "DROP_SAMPLE",
+      "provenance": "ESA/Copernicus",
+      "availability_status": "AVAILABLE"
+    },
+    "curvature": {
+      "source": "Copernicus DEM Derived",
+      "units": "1/100 z-units",
+      "spatial_resolution": "30m",
+      "temporal_resolution": "Static",
+      "preprocessing": ["Zevenbergen-Thorne method"],
+      "missing_data_behavior": "DROP_SAMPLE",
+      "provenance": "ESA/Copernicus",
+      "availability_status": "AVAILABLE"
+    },
+    "rainfall_3d": {
+      "source": "IMD Gridded",
+      "units": "mm",
+      "spatial_resolution": "0.25 deg",
+      "temporal_resolution": "Daily",
+      "preprocessing": ["Rolling 3-day sum", "Downscaling via elevation correlation"],
+      "missing_data_behavior": "IMPUTE_ZERO",
+      "provenance": "IMD Pune",
+      "availability_status": "AVAILABLE"
+    },
+    "lithology": {
+      "source": "GSI Geological Map",
+      "units": "categorical",
+      "spatial_resolution": "1:50,000",
+      "temporal_resolution": "Static",
+      "preprocessing": ["One-hot encoding"],
+      "missing_data_behavior": "IMPUTE_UNKNOWN_CLASS",
+      "provenance": "Geological Survey of India",
+      "availability_status": "PENDING_ACQUISITION"
+    },
+    "lulc": {
+      "source": "NRSC Bhuvan LULC",
+      "units": "categorical",
+      "spatial_resolution": "50m",
+      "temporal_resolution": "Annual",
+      "preprocessing": ["One-hot encoding"],
+      "missing_data_behavior": "DROP_SAMPLE",
+      "provenance": "NRSC/ISRO",
+      "availability_status": "PENDING_ACQUISITION"
+    }
+  }
+}
