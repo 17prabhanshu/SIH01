@@ -17,7 +17,6 @@ export default function NERMap() {
         style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
         center: [92.0, 25.5],
         zoom: 6,
-        attributionControl: true,
       });
 
       map.current.addControl(new maplibregl.NavigationControl(), 'top-right');

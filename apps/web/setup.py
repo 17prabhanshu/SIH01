@@ -14,7 +14,6 @@ files = {
     "lint": "next lint"
   },
   "dependencies": {
-    "@maplibre/maplibre-gl-js": "^4.0.0",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-dropdown-menu": "^2.0.6",
     "@radix-ui/react-select": "^2.0.0",
