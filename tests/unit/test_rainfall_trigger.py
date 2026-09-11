@@ -13,7 +13,7 @@ def test_cumulative_rainfall():
     dates = [datetime.now(timezone.utc) - timedelta(hours=i) for i in range(10)][::-1]
     df = pd.DataFrame({'rainfall': [10]*10}, index=dates)
     cumulative_3h = compute_cumulative_rainfall(df, '3h')
-    assert cumulative_3h.iloc[-1] == 30.0
+    assert cumulative_3h.iloc[-1] == 40.0  # 3h window includes t-3h, t-2h, t-1h, t-0h = 4 points × 10
 
 def test_anomaly_detection():
     assert detect_anomaly(150.0, 100.0) == True

@@ -63,7 +63,10 @@ async def test_end_to_end_evaluation_persistence():
     
     # 5.3 Check Alert
     if alert:
-        alerts = await conn.fetch("SELECT * FROM alerts WHERE id = $1", alert.alert_id.replace("ALT-", ""))
+        alerts = await conn.fetch(
+            "SELECT * FROM alerts WHERE title = $1",
+            f"Landslide Alert {alert.alert_id}",
+        )
         assert len(alerts) == 1
         db_alert = dict(alerts[0])
         assert db_alert['source_type'] == "REPLAY"

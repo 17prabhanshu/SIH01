@@ -133,12 +133,17 @@ class SusceptibilityModel:
         probabilities = self.model.predict_proba(features)[:, 1]
         
         # Uncertainty estimation: if RF, use variance of trees
-        if self.calibration:
-            base_rf = self.model.estimator
-        else:
+        base_rf = None
+        if self.calibration and hasattr(self.model, 'calibrated_classifiers_'):
+            # After fitting, CalibratedClassifierCV stores fitted estimators here
+            for cc in self.model.calibrated_classifiers_:
+                if hasattr(cc, 'estimator') and isinstance(cc.estimator, RandomForestClassifier):
+                    base_rf = cc.estimator
+                    break
+        elif not self.calibration and isinstance(self.model, RandomForestClassifier):
             base_rf = self.model
             
-        if isinstance(base_rf, RandomForestClassifier):
+        if base_rf is not None and hasattr(base_rf, 'estimators_'):
             # Collect predictions from all trees
             tree_preds = np.array([tree.predict_proba(features)[:, 1] for tree in base_rf.estimators_])
             uncertainty = np.std(tree_preds, axis=0)
@@ -163,20 +168,24 @@ class SusceptibilityModel:
         }
 
     def extract_feature_importance(self) -> Dict[str, float]:
-        """Extract SHAP/Gini feature importance."""
+        """Extract Gini feature importance from the underlying Random Forest."""
         if not self.is_trained:
             logger.warning("Attempted to extract feature importance from a BLOCKED/UNTRAINED model.")
             return {}
             
-        if self.calibration:
-            base_rf = self.model.estimator
-        else:
+        base_rf = None
+        if self.calibration and hasattr(self.model, 'calibrated_classifiers_'):
+            for cc in self.model.calibrated_classifiers_:
+                if hasattr(cc, 'estimator') and isinstance(cc.estimator, RandomForestClassifier):
+                    base_rf = cc.estimator
+                    break
+        elif not self.calibration and isinstance(self.model, RandomForestClassifier):
             base_rf = self.model
             
-        if hasattr(base_rf, 'feature_importances_'):
+        if base_rf is not None and hasattr(base_rf, 'feature_importances_'):
             importances = base_rf.feature_importances_
             if not self.feature_names:
-                self.feature_names = [f"Feature_{i}" for i in range(len(importances))]
+                self.feature_names = ["lat", "lon", "elevation", "slope"]
             return dict(zip(self.feature_names, importances))
         
         return {}

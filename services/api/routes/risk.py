@@ -54,21 +54,26 @@ async def get_zone_risk(zone_id: UUID, db: AsyncSession = Depends(get_db)):
 async def evaluate_risk(
     lat: float = Query(..., ge=-90, le=90),
     lon: float = Query(..., ge=-180, le=180),
+    timestamp: str = Query(None, description="Optional ISO-8601 timestamp for historical replay"),
     db: AsyncSession = Depends(get_db)
 ):
     from services.fusion.pipeline import FusionPipeline
     from services.fusion.exposure import ExposureEngine
     from services.alerts.engine import AlertEngine
-    
+
+    time_context = None
+    if timestamp:
+        time_context = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+
     pipeline = FusionPipeline(db)
-    fusion_result = await pipeline.run(lat, lon)
-    
+    fusion_result = await pipeline.run(lat, lon, time_context=time_context)
+
     exposure_engine = ExposureEngine()
     exposure_result = await exposure_engine.get_exposure_metrics(lat, lon)
-    
+
     alert_engine = AlertEngine(db_session=db)
     alert = await alert_engine.evaluate(fusion_result, exposure_result)
-    
+
     return {
         "fusion_result": {
             "hazard_evidence_score": fusion_result.hazard_evidence_score,

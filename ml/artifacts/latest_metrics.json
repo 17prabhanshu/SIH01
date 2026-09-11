@@ -1,0 +1,22 @@
+{
+  "metrics": {
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "f1": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "brier_score": 0.0038430150874946972,
+    "calibration_error": 0.052932722985157464
+  },
+  "feature_importance": {
+    "lat": 0.3992361111111111,
+    "lon": 0.0005397727272727275,
+    "elevation": 0.3219191919191919,
+    "slope": 0.27830492424242426
+  },
+  "metadata": {
+    "dataset": "Himalayas Benchmark Dataset",
+    "geographic_scope": "Himalayas",
+    "spatial_split": "GRID_BLOCK_HOLDOUT"
+  }
+}

@@ -4,6 +4,7 @@ import SystemStatus from '@/components/dashboard/SystemStatus';
 import AlertFeed from '@/components/dashboard/AlertFeed';
 import ModelAgreement from '@/components/dashboard/ModelAgreement';
 import DataFreshness from '@/components/dashboard/DataFreshness';
+import MLAssessmentPanel from '@/components/dashboard/MLAssessmentPanel';
 
 export default function CommandCentre() {
   return (
@@ -23,8 +24,13 @@ export default function CommandCentre() {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-64 flex-shrink-0 border-r bg-white p-4">
-          <SystemStatus />
+        <aside className="w-80 flex-shrink-0 border-r bg-white overflow-y-auto">
+          <div className="p-4">
+            <SystemStatus />
+          </div>
+          <div className="p-4 border-t">
+            <MLAssessmentPanel />
+          </div>
         </aside>
         
         <main className="flex-1 relative">

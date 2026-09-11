@@ -8,6 +8,7 @@ from .system import router as system_router
 from .exposure import router as exposure_router
 from .websocket import router as websocket_router
 from .replay import router as replay_router
+from .ml import router as ml_router
 
 api_router = APIRouter()
 
@@ -18,4 +19,5 @@ api_router.include_router(reports_router, prefix="/api/v1/reports", tags=["repor
 api_router.include_router(system_router, prefix="/api/v1/system", tags=["system"])
 api_router.include_router(exposure_router, prefix="/api/v1", tags=["exposure"])
 api_router.include_router(replay_router, prefix="/api/v1/replay", tags=["replay"])
+api_router.include_router(ml_router, prefix="/api/v1/ml", tags=["ml"])
 api_router.include_router(websocket_router)

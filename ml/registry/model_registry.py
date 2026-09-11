@@ -12,6 +12,7 @@ class ModelStatus(enum.Enum):
     BLOCKED = "BLOCKED"
     DISABLED = "DISABLED"
     OUT_OF_DOMAIN = "OUT_OF_DOMAIN"
+    DEVELOPMENT_BENCHMARK = "DEVELOPMENT_BENCHMARK"
 
 @dataclass
 class ModelInfo:
@@ -35,6 +36,8 @@ class ModelInfo:
     dataset_version: str
     feature_version: str
     compute_requirements: str
+    spatial_split: str = "UNAVAILABLE"
+    ood_status: str = "UNAVAILABLE"
     artifact_location: str = ""
     last_updated: datetime = field(default_factory=datetime.utcnow)
 
@@ -66,25 +69,27 @@ class ModelRegistry:
         
         self.register_model(ModelInfo(
             model_id="susceptibility_rf",
-            name="Random Forest Susceptibility Baseline",
+            name="RF-Benchmark-v1",
             version="1.0.0",
-            status=ModelStatus.BLOCKED,
-            license="Proprietary/Internal",
-            description="Static landslide susceptibility mapping. BLOCKED: Pending authoritative NER training labels.",
-            input_modalities=["DEM", "Lithology", "LULC"],
+            status=ModelStatus.DEVELOPMENT_BENCHMARK,
+            license="Open Data (Benchmark)",
+            description="Random Forest baseline trained on Benchmark dataset. NOT VALIDATED FOR NER.",
+            input_modalities=["DEM", "Slope", "Rainfall"],
             output_type="Hazard Evidence Score (0-1)",
             resolution="30m",
-            geographic_scope="NER",
+            geographic_scope="Benchmark Dataset Domain",
             temporal_scope="Static",
             trigger_type="None (Static)",
-            validation_region="None",
+            validation_region="SPATIAL HOLDOUT",
             validation_metrics={},
-            calibration_status="UNCALIBRATED",
-            known_limitations=["No authoritative training data", "Model cannot output calibrated probabilities until trained"],
-            training_data="None",
-            dataset_version="v0",
+            calibration_status="PLATT SCALING",
+            known_limitations=["Domain mismatch: Not trained on NER labels", "Model cannot output calibrated probabilities for NER region", "OOD constraints apply"],
+            training_data="Landslide Benchmark",
+            dataset_version="benchmark_v1",
             feature_version="v1.0",
             compute_requirements="Standard CPU",
+            spatial_split="GRID_BLOCK_HOLDOUT",
+            ood_status="STRICT_CHECK",
             artifact_location="ml/artifacts/susceptibility_rf_v1.joblib"
         ))
         

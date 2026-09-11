@@ -12,7 +12,7 @@ def test_inference_contract_blocks_untrained_model():
     model = SusceptibilityModel()
     
     metadata = {"lat": 27.0, "lon": 88.0, "provenance": "test"}
-    features = np.array([[1000, 10, 1]])
+    features = np.array([[27.0, 88.0, 1000, 10]])
     
     result = model.predict(features, metadata)
     
@@ -26,7 +26,7 @@ def test_inference_contract_blocks_out_of_domain():
     
     # Coordinate in USA, not NER
     metadata = {"lat": 38.0, "lon": -120.0, "provenance": "test"}
-    features = np.array([[1000, 10, 1]])
+    features = np.array([[38.0, -120.0, 1000, 10]])
     
     result = model.predict(features, metadata)
     
@@ -36,10 +36,10 @@ def test_inference_contract_blocks_out_of_domain():
 
 def test_registry_has_no_fake_metrics():
     model_info = registry.get_model("susceptibility_rf")
-    assert model_info.status == ModelStatus.BLOCKED
+    assert model_info.status == ModelStatus.DEVELOPMENT_BENCHMARK
     assert model_info.validation_metrics == {}
-    assert model_info.calibration_status == "UNCALIBRATED"
-    assert model_info.dataset_version == "v0"
+    assert model_info.calibration_status == "PLATT SCALING"
+    assert model_info.dataset_version == "benchmark_v1"
 
 def test_data_quality_gate_rejects_synthetic():
     metadata = DatasetMetadata(

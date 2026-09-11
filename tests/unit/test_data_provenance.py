@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 def create_provenance_record(source: str, mode: str, timestamp: datetime) -> dict:
     return {
@@ -27,8 +27,9 @@ def test_data_mode_labelling():
     assert record2["mode"] == "CACHED"
 
 def test_freshness_computation():
-    past = datetime.now(timezone.utc) - timedelta(hours=5) # wait I didn't import timedelta here, let's fix that
-    pass # I'll do this better below
+    past = datetime.now(timezone.utc) - timedelta(hours=5)
+    freshness = get_freshness_hours(past.isoformat())
+    assert 4.9 < freshness < 5.1
 
 def test_lineage_chain():
     chain = ["RAW_SENSOR", "CLEANED_DATA", "FEATURE_SET", "MODEL_OUTPUT"]
