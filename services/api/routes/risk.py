@@ -48,9 +48,40 @@ def _mock_risk_assessment() -> RiskAssessment:
 
 @router.get("/zone/{zone_id}", response_model=RiskAssessment)
 async def get_zone_risk(zone_id: UUID, db: AsyncSession = Depends(get_db)):
-    # In reality, fetch actual models, run inference or get cached results
-    # using valid real data.
     return _mock_risk_assessment()
+
+@router.get("/evaluate")
+async def evaluate_risk(
+    lat: float = Query(..., ge=-90, le=90),
+    lon: float = Query(..., ge=-180, le=180),
+    db: AsyncSession = Depends(get_db)
+):
+    from services.fusion.pipeline import FusionPipeline
+    from services.fusion.exposure import ExposureEngine
+    from services.alerts.engine import AlertEngine
+    
+    pipeline = FusionPipeline(db)
+    fusion_result = await pipeline.run(lat, lon)
+    
+    exposure_engine = ExposureEngine()
+    exposure_result = await exposure_engine.get_exposure_metrics(lat, lon)
+    
+    alert_engine = AlertEngine(db_session=db)
+    alert = await alert_engine.evaluate(fusion_result, exposure_result)
+    
+    return {
+        "fusion_result": {
+            "hazard_evidence_score": fusion_result.hazard_evidence_score,
+            "evidence_coverage": fusion_result.evidence_coverage,
+            "assessment_status": fusion_result.assessment_status,
+            "assessment_confidence": fusion_result.assessment_confidence,
+            "data_freshness": fusion_result.data_freshness,
+            "explainability_report": fusion_result.explainability_report,
+            "contributing_factors": fusion_result.contributing_factors
+        },
+        "exposure_result": exposure_result,
+        "alert": alert.dict() if alert else None
+    }
 
 @router.get("/location", response_model=RiskAssessment)
 async def get_location_risk(

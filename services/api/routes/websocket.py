@@ -1,74 +1,66 @@
+import asyncio
 import json
 import logging
-import asyncio
-from typing import Dict, List, Any
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException, status
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from typing import List
 
 logger = logging.getLogger(__name__)
-
-router = APIRouter()
+router = APIRouter(tags=["websockets"])
 
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
 
-    async def connect(self, websocket: WebSocket, token: str):
-        # Authenticate token here
-        if token != "valid_token": # Placeholder
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token"
-            )
+    async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.append(websocket)
-        logger.info(f"WebSocket connected. Total active: {len(self.active_connections)}")
+        logger.info(f"Client connected. Total clients: {len(self.active_connections)}")
 
     def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
-        logger.info(f"WebSocket disconnected. Total active: {len(self.active_connections)}")
+            logger.info(f"Client disconnected. Total clients: {len(self.active_connections)}")
 
-    async def broadcast(self, event_type: str, data: Any):
-        if not self.active_connections:
-            return
-            
-        message = json.dumps({
-            "type": event_type,
-            "data": data
-        })
-        
-        # Create tasks for parallel broadcasting
-        tasks = [connection.send_text(message) for connection in self.active_connections]
-        
-        # Execute tasks and handle failures silently (disconnects will be handled by the route)
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        for idx, result in enumerate(results):
-            if isinstance(result, Exception):
-                logger.warning(f"Failed to send to a connection: {result}")
+    async def broadcast(self, message: dict):
+        # Convert message to JSON string if it's a dict
+        msg_str = json.dumps(message)
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(msg_str)
+            except Exception as e:
+                logger.error(f"Failed to send message to client: {e}")
+                self.disconnect(connection)
 
 manager = ConnectionManager()
 
-@router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, token: str = Query(None)):
-    if not token:
-        await websocket.close(code=1008)
-        return
-        
+@router.websocket("/ws/alerts")
+async def websocket_alerts_endpoint(websocket: WebSocket):
+    """
+    WebSocket endpoint for live real-time alert streaming to the dashboard.
+    """
+    await manager.connect(websocket)
     try:
-        await manager.connect(websocket, token)
-        
-        # Ping-pong loop
         while True:
+            # Keep connection alive and listen for client messages (optional)
             data = await websocket.receive_text()
-            try:
-                parsed = json.loads(data)
-                if parsed.get("type") == "ping":
-                    await websocket.send_text(json.dumps({"type": "pong"}))
-            except json.JSONDecodeError:
-                pass
-                
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-    except Exception as e:
-        logger.error(f"WebSocket error: {e}")
-        manager.disconnect(websocket)
+        
+# For demonstration purposes in the MVP prototype, we'll expose an HTTP endpoint 
+# to trigger a broadcast. In production, the background AlertEngine Celery worker 
+# would trigger this via Redis Pub/Sub.
+@router.post("/api/v1/trigger_test_alert")
+async def trigger_test_alert(priority: str = "P1", reason: str = "Anomalous SAR Backscatter and Extreme Rainfall"):
+    alert = {
+        "type": "NEW_ALERT",
+        "data": {
+            "alert_id": "ALT-TEST1234",
+            "priority": priority,
+            "severity": priority.split("_")[0] if "_" in priority else priority,
+            "reason": reason,
+            "location": {"lat": 27.3314, "lon": 88.6138},
+            "timestamp": "Just now"
+        }
+    }
+    await manager.broadcast(alert)
+    return {"status": "broadcasted", "alert": alert}
