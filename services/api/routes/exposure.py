@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from services.api.dependencies import get_db
+from services.api.database import get_db
 from services.fusion.exposure import ExposureEngine
 import logging
 

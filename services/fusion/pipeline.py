@@ -194,28 +194,79 @@ class FusionPipeline:
         report += "A calibrated landslide probability cannot be produced because the NER susceptibility model and additional independent hazard-evidence layers are unavailable."
         return report
 
+    def _get_deterministic_id(self, lat: float, lon: float, timestamp: datetime, data_mode: str) -> str:
+        """Generate deterministic UUID based on event context to prevent duplicate replay records."""
+        import uuid
+        seed_str = f"FUSION_{data_mode}_{lat:.5f}_{lon:.5f}_{timestamp.isoformat()}"
+        return str(uuid.uuid5(uuid.NAMESPACE_OID, seed_str))
+
     async def store_result(self, result: FusionResult):
         """Store results with full provenance in DB"""
-        query = text("""
+        
+        # 1. Get Model ID
+        query_model = text("SELECT id FROM model_registry WHERE name = 'fusion_pipeline' AND version = '1.0' LIMIT 1")
+        model_result = await self.db.execute(query_model)
+        row = model_result.first()
+        if not row:
+            logger.error("Fusion Pipeline model not registered in DB.")
+            return
+            
+        model_id = row[0]
+        data_mode = "REPLAY" if "HISTORICAL" in result.data_freshness.values() else "LIVE"
+        run_id = self._get_deterministic_id(result.location['lat'], result.location['lon'], result.timestamp, data_mode)
+        
+        # 2. Insert into model_runs
+        import json
+        query_run = text("""
             INSERT INTO model_runs (
-                model_name, version, parameters, metrics, output_data, run_date, 
-                data_mode, provenance_id, status
+                id, model_id, run_start, run_end, status, configuration, logs
             ) VALUES (
-                :model_name, :version, :parameters, :metrics, :output_data, :run_date,
-                :data_mode, :provenance_id, :status
-            )
+                :id, :model_id, :run_start, :run_end, :status, :configuration, :logs
+            ) ON CONFLICT (id) DO UPDATE SET 
+                configuration = EXCLUDED.configuration,
+                logs = EXCLUDED.logs
         """)
-        await self.db.execute(query, {
-            "model_name": "fusion_pipeline",
-            "version": "1.0",
-            "parameters": '{"lat": ' + str(result.location['lat']) + ', "lon": ' + str(result.location['lon']) + '}',
-            "metrics": '{"coverage": ' + str(result.evidence_coverage) + ', "agreement": ' + str(result.model_agreement or "null") + '}',
-            "output_data": '{"hazard_evidence_score": ' + str(result.hazard_evidence_score) + '}',
-            "run_date": result.timestamp,
-            "data_mode": "LIVE",
-            "provenance_id": None,
-            "status": result.assessment_status
+        
+        config = {
+            "lat": result.location['lat'], 
+            "lon": result.location['lon'], 
+            "data_mode": data_mode,
+            "coverage": result.evidence_coverage,
+            "agreement": result.model_agreement
+        }
+        
+        await self.db.execute(query_run, {
+            "id": run_id,
+            "model_id": model_id,
+            "run_start": result.timestamp,
+            "run_end": result.timestamp,
+            "status": "SUCCESS" if result.assessment_status == "SUFFICIENT EVIDENCE" else "FAILED",
+            "configuration": json.dumps(config),
+            "logs": result.explainability_report
         })
+        
+        # 3. Insert into model_predictions
+        query_pred = text("""
+            INSERT INTO model_predictions (
+                id, run_id, geom, hazard_evidence_score, severity, prediction_timestamp
+            ) VALUES (
+                :id, :run_id, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), 
+                :hazard_evidence_score, :severity, :prediction_timestamp
+            ) ON CONFLICT (id, created_at) DO NOTHING
+        """)
+        
+        pred_id = self._get_deterministic_id(result.location['lat'], result.location['lon'], result.timestamp, data_mode + "_PRED")
+        
+        await self.db.execute(query_pred, {
+            "id": pred_id,
+            "run_id": run_id,
+            "lon": result.location['lon'],
+            "lat": result.location['lat'],
+            "hazard_evidence_score": result.hazard_evidence_score, 
+            "severity": "HIGH" if result.hazard_evidence_score > 0.5 else "LOW",
+            "prediction_timestamp": result.timestamp
+        })
+        
         await self.db.commit()
 
     def get_assessment_confidence(self, coverage: float) -> str:

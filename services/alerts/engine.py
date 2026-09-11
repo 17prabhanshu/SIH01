@@ -105,7 +105,13 @@ class AlertEngine:
                 logger.info(f"Alert deduplicated with existing alert {dedup_id}")
                 return None
 
-            alert_id = f"ALT-{uuid.uuid4().hex[:8].upper()}"
+            data_mode = "LIVE" if fusion_result.data_freshness.get("rainfall") == "LIVE" else "REPLAY"
+            
+            # Deterministic UUID for Idempotency
+            seed_str = f"ALERT_{data_mode}_{fusion_result.location['lat']:.5f}_{fusion_result.location['lon']:.5f}_{fusion_result.timestamp.isoformat()}"
+            alert_id_uuid = str(uuid.uuid5(uuid.NAMESPACE_OID, seed_str))
+            alert_id = f"ALT-{alert_id_uuid[:8].upper()}"
+            
             alert = Alert(
                 alert_id=alert_id,
                 location=fusion_result.location,
@@ -136,7 +142,7 @@ class AlertEngine:
                         :id, :severity, :status, :title, :description, 
                         ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), 
                         :issued_at, :source_type
-                    )
+                    ) ON CONFLICT (id) DO NOTHING
                 """)
                 # Handle enum mapping
                 pg_severity = "LOW"
@@ -146,7 +152,7 @@ class AlertEngine:
                 elif alert.severity == "P4": pg_severity = "MODERATE"
                 
                 await self.db.execute(query, {
-                    "id": str(uuid.uuid4()),
+                    "id": alert_id_uuid,
                     "severity": pg_severity,
                     "status": "ACTIVE",
                     "title": f"Landslide Alert {alert_id}",
@@ -154,7 +160,7 @@ class AlertEngine:
                     "lon": alert.location['lon'],
                     "lat": alert.location['lat'],
                     "issued_at": alert.timestamp,
-                    "source_type": "MODEL" if fusion_result.data_freshness.get("rainfall") == "LIVE" else "REPLAY"
+                    "source_type": data_mode
                 })
                 await self.db.commit()
 
