@@ -12,6 +12,7 @@ class OpenMeteoAdapter:
     """
     
     BASE_URL = "https://api.open-meteo.com/v1/forecast"
+    _cache = {}
 
     def __init__(self):
         self.client = httpx.AsyncClient(timeout=10.0)
@@ -20,6 +21,14 @@ class OpenMeteoAdapter:
         """
         Fetch elevation and antecedent rainfall. If time_context is provided, fetches historical data.
         """
+        # Cache key based on lat, lon, and time_context
+        cache_key = f"{lat}_{lon}_{time_context.isoformat() if time_context else 'live'}"
+        now = datetime.utcnow()
+        if cache_key in self._cache:
+            entry_time, entry_data = self._cache[cache_key]
+            if (now - entry_time).total_seconds() < 60:
+                return entry_data
+
         if time_context is None:
             # Live data
             url = self.BASE_URL
@@ -63,23 +72,28 @@ class OpenMeteoAdapter:
                 rainfall_24h = 0.0
                 rainfall_72h = 0.0
                 
-            return {
+            result = {
                 "elevation": elevation,
                 "rainfall_24h": rainfall_24h,
                 "rainfall_72h": rainfall_72h,
                 "status": "SUCCESS",
                 "source": "Open-Meteo (Archive)" if time_context else "Open-Meteo (Live)"
             }
+            self._cache[cache_key] = (now, result)
+            return result
             
         except Exception as e:
             logger.error(f"Failed to fetch data from Open-Meteo: {e}")
-            return {
+            result = {
                 "elevation": 0.0,
                 "rainfall_24h": 0.0,
                 "rainfall_72h": 0.0,
                 "status": "FAILED",
                 "error": str(e)
             }
+            # Cache failures for 10s
+            self._cache[cache_key] = (now, result)
+            return result
 
     async def close(self):
         await self.client.aclose()

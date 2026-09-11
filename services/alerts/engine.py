@@ -6,7 +6,6 @@ from dataclasses import dataclass, asdict
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from services.api.routes.websocket import manager as ws_manager
 
 logger = logging.getLogger(__name__)
 
@@ -174,6 +173,7 @@ class AlertEngine:
             # Only broadcast if it's a live/replay run that is meant to push to UI
             # We wrap it in a background task to not block DB commits
             import asyncio
+            from services.api.routes.websocket import manager as ws_manager
             asyncio.create_task(ws_manager.broadcast(ws_payload))
 
             return alert
