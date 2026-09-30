@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # PostgreSQL + PostGIS
+  postgis:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: garjana
+      POSTGRES_USER: garjana
+      POSTGRES_PASSWORD: garjana
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U garjana"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis (Streams for event bus)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Garjana API (FastAPI)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://garjana:garjana@postgis:5432/garjana
+      REDIS_URL: redis://redis:6379
+      GARJANA_RUN_MODE: REPLAY
+      GARJANA_CONFIG_DIR: /app/config
+    depends_on:
+      postgis:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./replay_bundles:/app/replay_bundles
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Garjana Worker (forecast cycle)
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://garjana:garjana@postgis:5432/garjana
+      REDIS_URL: redis://redis:6379
+      GARJANA_RUN_MODE: REPLAY
+      GARJANA_CONFIG_DIR: /app/config
+    depends_on:
+      postgis:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./replay_bundles:/app/replay_bundles
+    command: python -m workers.cycle
+
+  # Frontend (Next.js)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_WS_URL: ws://localhost:8000/ws/events
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

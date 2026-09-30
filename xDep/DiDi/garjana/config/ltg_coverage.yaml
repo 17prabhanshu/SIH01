@@ -1,0 +1,32 @@
+# Lightning detection coverage proxy
+# source: IITM network description (83 sensors) + ILDN (Tripura Univ)
+# These are ROUGH estimates. Use "unknown" where detection efficiency is truly unknown.
+
+lightning_networks:
+  iitm:
+    description: "IITM Lightning Detection Network (~83 sensors)"
+    coverage_proxy: 0.7    # NEEDS VERIFICATION - varies spatially
+    status: "uncertain"    # Damini app status unclear
+
+  ildn:
+    description: "Tripura University ILDN"
+    coverage_proxy: 0.6    # NEEDS VERIFICATION
+    status: "academic_collaboration"
+
+  lis:
+    description: "NASA LIS (archive only, non-continuous)"
+    coverage_proxy: 0.5    # NEEDS VERIFICATION - low temporal resolution
+    status: "archive_only"
+
+  proxy:
+    description: "Proxy lightning from IR Tb + radar VIL"
+    coverage_proxy: 0.3    # Lower confidence for proxy
+    status: "always_available"
+    fidelity: "proxy"      # Always flagged as proxy
+
+  none:
+    description: "No lightning data available"
+    coverage_proxy: 0.0    # Unknown means 0, not 1.0
+    status: "unavailable"
+
+default_network: "proxy"  # Until real data secured

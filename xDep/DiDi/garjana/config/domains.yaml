@@ -1,0 +1,34 @@
+# Garjana radar domain definitions
+# Each domain is a 256x256 grid at 2 km on azimuthal-equidistant projection
+# source: IMD DWR network dataset (figshare 22704910)
+
+domains:
+  # Lucknow DWR - well-documented; 10 min volume scans
+  LKO:
+    center_lat: 26.7606  # source: IMD DWR network dataset
+    center_lon: 80.8853  # source: IMD DWR network dataset
+    radar_id: "LKO"
+    nx: 256
+    ny: 256
+    dx_m: 2000.0
+    dy_m: 2000.0
+    projection: "aeqd"
+    max_range_km: 250  # source: S-band typical range
+    band: "S"  # source: IMD DWR network dataset
+    elevations: [0.5, 1.0, 1.5, 2.0, 2.5, 3.5, 4.5, 6.0, 8.0, 12.0]  # NEEDS VERIFICATION
+
+  # Synthetic/SEVIR domain for development
+  SEVIR_DEV:
+    center_lat: 38.0  # approximate SEVIR center
+    center_lon: -95.0
+    radar_id: "SEVIR_DEV"
+    nx: 256
+    ny: 256
+    dx_m: 2000.0
+    dy_m: 2000.0
+    projection: "aeqd"
+    max_range_km: 250
+    band: "synthetic"
+    elevations: []
+
+default_domain: "SEVIR_DEV"  # Switch to Indian domain when data available

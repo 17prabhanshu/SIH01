@@ -1,0 +1,30 @@
+# Exposure asset criticality weights for priority scoring
+# Priority = f(hazard_tier, probability, asset_criticality, OI)
+# source: internal design decision - weights shown to operator
+
+asset_criticality:
+  airport: 1.0
+  hospital: 0.95
+  school: 0.85
+  railway_station: 0.8
+  highway: 0.7
+  major_road: 0.6
+  settlement_large: 0.75  # city/town
+  settlement_small: 0.5   # village
+  farmland: 0.3
+  industrial: 0.65
+  power_station: 0.9
+  dam: 0.95
+
+# How hazard tier modifies priority
+tier_multiplier:
+  validated: 1.0
+  experimental: 0.7
+  environment_only: 0.4
+  proxy: 0.5
+
+# Probability thresholds for alert triggering
+alert_probability_thresholds:
+  warning: 0.7    # P >= 0.7 for Warning-level
+  watch: 0.4      # P >= 0.4 for Watch-level
+  outlook: 0.2    # P >= 0.2 for Outlook-level

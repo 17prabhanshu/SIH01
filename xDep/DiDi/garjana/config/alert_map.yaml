@@ -1,0 +1,69 @@
+# Alert severity mapping: hazard_tier x probability x exposure -> CAP severity/urgency/certainty
+# source: internal design decision based on CAP 1.2 standard
+# R10: Experimental hazards can only yield Watch/Outlook, never Warning
+
+severity_mapping:
+  # For validated hazards
+  validated:
+    high_probability:  # P >= 0.7
+      severity: "Severe"
+      urgency: "Immediate"
+      certainty: "Likely"
+    medium_probability:  # P >= 0.4
+      severity: "Moderate"
+      urgency: "Expected"
+      certainty: "Possible"
+    low_probability:  # P >= 0.2
+      severity: "Minor"
+      urgency: "Future"
+      certainty: "Possible"
+
+  # For experimental hazards - NEVER Warning level (R10)
+  experimental:
+    high_probability:
+      severity: "Moderate"    # Capped: no Severe/Extreme
+      urgency: "Expected"     # Capped: no Immediate
+      certainty: "Possible"   # Capped: no Likely
+    medium_probability:
+      severity: "Minor"
+      urgency: "Future"
+      certainty: "Possible"
+    low_probability:
+      severity: "Minor"
+      urgency: "Future"
+      certainty: "Unlikely"
+
+  # For environment_only hazards
+  environment_only:
+    high_probability:
+      severity: "Minor"
+      urgency: "Future"
+      certainty: "Possible"
+    medium_probability:
+      severity: "Minor"
+      urgency: "Future"
+      certainty: "Unlikely"
+    low_probability:
+      severity: "Unknown"
+      urgency: "Future"
+      certainty: "Unlikely"
+
+  # For proxy-based hazards
+  proxy:
+    high_probability:
+      severity: "Minor"
+      urgency: "Expected"
+      certainty: "Possible"
+    medium_probability:
+      severity: "Minor"
+      urgency: "Future"
+      certainty: "Unlikely"
+    low_probability:
+      severity: "Unknown"
+      urgency: "Future"
+      certainty: "Unlikely"
+
+probability_bins:
+  high: 0.7
+  medium: 0.4
+  low: 0.2

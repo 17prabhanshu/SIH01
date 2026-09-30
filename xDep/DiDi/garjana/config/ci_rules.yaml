@@ -1,0 +1,27 @@
+# Convective Initiation rules - Stage A (rule-based)
+# source: Mecikalski & Bedka (SATCAST tradition) - NEEDS VERIFICATION
+# WARNING: These thresholds are PLACEHOLDERS. Must be verified against papers
+# before PPT submission.
+
+ci_rules:
+  # Cloud-top cooling rate test
+  cooling_rate:
+    window_minutes: 30           # NEEDS VERIFICATION
+    threshold_K_per_15min: -4.0  # NEEDS VERIFICATION - source: Mecikalski & Bedka
+    min_area_pixels: 5           # NEEDS VERIFICATION
+
+  # IR window temperature test
+  ir_window:
+    max_brightness_temp_K: 235.0  # NEEDS VERIFICATION - cold cloud threshold
+    channel: "TIR1"               # 10.8 µm on INSAT-3DR
+
+  # WV-IR difference test
+  wv_ir_diff:
+    min_diff_K: -25.0            # NEEDS VERIFICATION
+    wv_channel: "WV"             # 6.8 µm on INSAT-3DR
+
+  # Combined trigger: all tests must pass
+  require_all: true
+
+  # Output
+  horizons_min: [60, 120, 180]  # P(CI within X min)
