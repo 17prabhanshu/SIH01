@@ -94,10 +94,74 @@ def run_cycle(
             result["steps"]["objects"] = f"detected {len(storms)} storms"
             result["metrics"]["num_storms"] = len(storms)
 
-            # 7. Hazards, 9. ETA, 10. Alerts
-            result["steps"]["hazards"] = "ok"
-            result["steps"]["eta_exposure"] = "ok"
-            result["steps"]["alerts"] = "ok"
+            # 7. Hazards
+            from hazards.lightning import compute_lightning_hazard
+            from hazards.rain import compute_rain_hazard
+            from hazards.extreme_rain import compute_extreme_rain_risk
+            from hazards.hail import compute_hail_hazard
+            from hazards.wind import compute_wind_hazard
+            from hazards.tiers import ValidationTier
+            
+            hazards = []
+            ltg = compute_lightning_hazard(vil=None, flash_rate=0)
+            ltg.validation_tier = ValidationTier.PROXY
+            hazards.append(ltg)
+            
+            rain = compute_rain_hazard(ensemble_fcsts)
+            hazards.append(rain)
+            
+            ext_rain = compute_extreme_rain_risk(ensemble_fcsts)
+            ext_rain.validation_tier = ValidationTier.EXPERIMENTAL
+            hazards.append(ext_rain)
+            
+            hail = compute_hail_hazard(vil=1.0)
+            hail.validation_tier = ValidationTier.EXPERIMENTAL
+            hazards.append(hail)
+            
+            wind = compute_wind_hazard(dcape=0.0)
+            wind.validation_tier = ValidationTier.EXPERIMENTAL
+            hazards.append(wind)
+            
+            result["steps"]["hazards"] = f"computed {len(hazards)} hazards"
+
+            # 9. ETA + Exposure
+            from decision.eta import compute_probabilistic_eta
+            from decision.exposure import compute_priority_score
+            
+            mock_assets = [{"asset_id": "A1", "polygon_wkt": "POINT(80.8 26.7)", "criticality": 1.0}]
+            etas = []
+            for s in storms:
+                etas.append(compute_probabilistic_eta(s.storm_id, "A1", cycle_time, ensemble_fcsts, mock_assets[0]["polygon_wkt"], grid_spec))
+            
+            result["steps"]["eta_exposure"] = f"computed {len(etas)} ETAs"
+
+            # 10. Alert drafts
+            from core.types import Alert, AlertStatus, ValidationTier
+            import uuid
+            alerts = []
+            for h in hazards:
+                alerts.append(Alert(alert_id=f"A{uuid.uuid4().hex[:8]}", hazard=h.hazard, validation_tier=h.validation_tier, issued=cycle_time))
+            result["steps"]["alerts"] = f"drafted {len(alerts)} alerts"
+            
+            # 11. Persistence
+            from db.repo import insert_storm_cell, insert_hazard_forecast, insert_eta_estimate, insert_alert
+            for s in storms:
+                insert_storm_cell(s)
+            for h in hazards:
+                insert_hazard_forecast(h)
+            for e in etas:
+                insert_eta_estimate(e)
+            for a in alerts:
+                insert_alert(a)
+                
+            import redis
+            import json
+            try:
+                r = redis.Redis.from_url(os.environ.get("REDIS_URL", "redis://localhost:6379"))
+                for a in alerts:
+                    r.xadd("alerts_stream", {"data": json.dumps(a.__dict__, default=str)})
+            except Exception as e:
+                logger.warning(f"Redis broadcast skipped: {e}")
 
         else:
             raise NotImplementedError("Live mode not yet implemented")

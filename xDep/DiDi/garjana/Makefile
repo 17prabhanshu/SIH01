@@ -40,11 +40,16 @@ logs:
 
 # --- Demo ---
 demo:
-	@echo "Starting Garjana demo with replay bundle..."
-	docker compose -f docker-compose.yml up -d
-	@echo "Demo running at http://localhost:3000"
-	@echo "API at http://localhost:8000"
-	@echo "Mode: REPLAY | Data: pre-computed bundle"
+	@echo "Starting Garjana demo servers..."
+	bash -c "source .venv/bin/activate && python -m uvicorn api.main:app --port 8000 > /dev/null 2>&1 &"
+	bash -c "cd frontend && npm start > /dev/null 2>&1 &"
+	@echo "Waiting for servers to start..."
+	sleep 5
+	@echo "Running playwright demo test..."
+	bash -c "source .venv/bin/activate && pytest tests/test_playwright_demo.py"
+	@echo "Killing servers..."
+	lsof -ti:8000 | xargs kill -9 || true
+	lsof -ti:3000 | xargs kill -9 || true
 
 # --- Data ---
 prepare-sevir:

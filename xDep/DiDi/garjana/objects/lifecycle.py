@@ -17,7 +17,7 @@ def detect_lifecycle_events(
     """
     if not previous:
         for storm in current:
-            storm.lifecycle_event = "initiation"
+            storm.lifecycle_event = "new"
         return current
 
     prev_tracks = {s.track_id for s in previous if s.track_id}
@@ -25,11 +25,11 @@ def detect_lifecycle_events(
 
     for storm in current:
         if not storm.track_id:
-            storm.lifecycle_event = "initiation"
+            storm.lifecycle_event = "new"
             continue
 
         if storm.track_id not in prev_tracks:
-            storm.lifecycle_event = "initiation"
+            storm.lifecycle_event = "new"
             continue
 
         # Find corresponding previous storm
@@ -41,10 +41,10 @@ def detect_lifecycle_events(
 
         # Intensification: Zmax increase > 5 dBZ or area growth > 50%
         if storm.zmax > prev.zmax + 5 or storm.area_km2 > prev.area_km2 * 1.5:
-            storm.lifecycle_event = "intensification"
+            storm.lifecycle_event = "intensified"
         # Decay: Zmax decrease > 5 dBZ or area shrink > 50%
         elif storm.zmax < prev.zmax - 5 or storm.area_km2 < prev.area_km2 * 0.5:
-            storm.lifecycle_event = "decay"
+            storm.lifecycle_event = "decaying"
 
     return current
 

@@ -82,7 +82,7 @@ def test_track_storms():
         lifecycle_event="none"
     )
     tracked_storms2 = track_storms([storm3], [storm1])
-    assert tracked_storms2[0].lifecycle_event == "initiation"
+    assert tracked_storms2[0].lifecycle_event == "new"
 
 def test_detect_lifecycle_events():
     dt = datetime.datetime.now()
@@ -101,7 +101,7 @@ def test_detect_lifecycle_events():
         u_kmh=0.0, v_kmh=0.0, lifecycle_event="none"
     )
     updated_storm_int = detect_lifecycle_events([new_storm_intensified], [old_storm])[0]
-    assert updated_storm_int.lifecycle_event == "intensification"
+    assert updated_storm_int.lifecycle_event == "intensified"
     
     # Decay
     new_storm_decay = StormObject(
@@ -111,4 +111,4 @@ def test_detect_lifecycle_events():
         u_kmh=0.0, v_kmh=0.0, lifecycle_event="none"
     )
     updated_storm_dec = detect_lifecycle_events([new_storm_decay], [old_storm])[0]
-    assert updated_storm_dec.lifecycle_event == "decay"
+    assert updated_storm_dec.lifecycle_event == "decaying"

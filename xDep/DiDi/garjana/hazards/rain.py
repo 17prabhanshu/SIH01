@@ -63,7 +63,7 @@ def compute_rain_hazard(
         if max_rain >= threshold_mm_h:
             n_exceed += 1
 
-    prob = n_exceed / len(reflectivity_ensemble) if reflectivity_ensemble else 0.0
+    prob = n_exceed / len(reflectivity_ensemble) if len(reflectivity_ensemble) > 0 else 0.0
 
     return HazardValue(
         hazard="heavy_rain",

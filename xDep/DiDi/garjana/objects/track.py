@@ -35,7 +35,7 @@ def track_storms(
         for i, storm in enumerate(current_storms):
             if not storm.track_id:
                 storm.track_id = f"T{storm.storm_id}"
-                storm.lifecycle_event = "initiation"
+                storm.lifecycle_event = "new"
         return current_storms
 
     # Time delta in hours
@@ -89,9 +89,9 @@ def track_storms(
 
             # Lifecycle event
             if curr.zmax > prev.zmax + 5:
-                curr.lifecycle_event = "intensification"
+                curr.lifecycle_event = "intensified"
             elif curr.area_km2 < prev.area_km2 * 0.5:
-                curr.lifecycle_event = "decay"
+                curr.lifecycle_event = "decaying"
 
             matched_curr.add(c)
 
@@ -99,6 +99,6 @@ def track_storms(
     for j, storm in enumerate(current_storms):
         if j not in matched_curr:
             storm.track_id = f"T{storm.storm_id}"
-            storm.lifecycle_event = "initiation"
+            storm.lifecycle_event = "new"
 
     return current_storms

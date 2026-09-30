@@ -100,13 +100,22 @@ def _mask_to_polygon_wkt(
     mask: np.ndarray,
     grid_spec: GridSpec,
 ) -> str | None:
-    """Convert a binary mask to a WKT polygon (simplified convex hull)."""
+    """Convert a binary mask to a WKT polygon (concave footprint)."""
     try:
-        from scipy.spatial import ConvexHull
+        from skimage import measure
 
-        ys, xs = np.where(mask)
-        if len(ys) < 3:
+        contours = measure.find_contours(mask, 0.5)
+        if not contours:
             return None
+
+        # Take the largest contour by area or simply the one with most points
+        contour = max(contours, key=len)
+
+        if len(contour) < 3:
+            return None
+
+        ys = contour[:, 0]
+        xs = contour[:, 1]
 
         # Convert to lat/lon
         lats = grid_spec.center_lat + (ys - grid_spec.ny / 2) * grid_spec.dy_m / 111000.0
@@ -114,13 +123,13 @@ def _mask_to_polygon_wkt(
             111000.0 * np.cos(np.radians(grid_spec.center_lat))
         )
 
-        points = np.column_stack([lons, lats])
-        hull = ConvexHull(points)
-        hull_points = points[hull.vertices]
-        # Close the ring
-        hull_points = np.vstack([hull_points, hull_points[0]])
+        contour_points = np.column_stack([lons, lats])
+        
+        # Close the ring if not closed
+        if not np.allclose(contour_points[0], contour_points[-1]):
+            contour_points = np.vstack([contour_points, contour_points[0]])
 
-        coords = ", ".join(f"{lon} {lat}" for lon, lat in hull_points)
+        coords = ", ".join(f"{lon} {lat}" for lon, lat in contour_points)
         return f"POLYGON(({coords}))"
     except Exception:
         return None

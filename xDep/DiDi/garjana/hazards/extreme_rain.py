@@ -45,7 +45,7 @@ def compute_extreme_rain_risk(
         if extreme_pixels >= min_pixels:
             n_exceed += 1
 
-    prob = n_exceed / len(reflectivity_ensemble) if reflectivity_ensemble else 0.0
+    prob = n_exceed / len(reflectivity_ensemble) if len(reflectivity_ensemble) > 0 else 0.0
     prob *= orography_factor
     prob = float(np.clip(prob, 0.0, 1.0))
 
