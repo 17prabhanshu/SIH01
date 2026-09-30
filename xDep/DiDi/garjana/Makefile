@@ -28,6 +28,12 @@ ablate:
 benchmark:
 	python -m garjana.verify.benchmark --output docs/results/
 
+compare-opensource:
+	@echo "Cloning DeepMind DGMR implementation..."
+	@git clone https://github.com/openclimatefix/skillful_nowcasting.git /tmp/skillful_nowcasting || true
+	@echo "Running model comparison..."
+	python verify/compare_models.py
+
 # --- Docker ---
 up:
 	docker compose up -d
