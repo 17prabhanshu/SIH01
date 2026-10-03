@@ -12,24 +12,10 @@ COPY pyproject.toml .
 RUN pip install --no-cache-dir -e ".[dev]" || pip install --no-cache-dir .
 
 # Application code
-COPY api/ api/
-COPY core/ core/
-COPY align/ align/
+COPY garjana/ garjana/
 COPY config/ config/
-COPY db/ db/
-COPY decision/ decision/
-COPY forecast/ forecast/
-COPY hazards/ hazards/
-COPY objects/ objects/
-COPY providers/ providers/
-COPY qc/ qc/
-COPY replay/ replay/
-COPY workers/ workers/
-COPY verify/ verify/
 COPY train/ train/
 
 EXPOSE 8000
 
-ENV PYTHONPATH=/app
-
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "garjana.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

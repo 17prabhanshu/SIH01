@@ -57,16 +57,4 @@ def check_no_future_data(
     # Features must be identical
     if isinstance(features_all, np.ndarray) and isinstance(features_modified, np.ndarray):
         return np.array_equal(features_all, features_modified)
-    elif isinstance(features_all, dict) and isinstance(features_modified, dict):
-        for k in features_all:
-            if not np.array_equal(features_all[k], features_modified[k]):
-                return False
-        return True
-    elif isinstance(features_all, list) and isinstance(features_modified, list):
-        if len(features_all) != len(features_modified):
-            return False
-        for a, b in zip(features_all, features_modified):
-            if not np.array_equal(a, b):
-                return False
-        return True
     return features_all == features_modified

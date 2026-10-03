@@ -13,15 +13,6 @@ from core.types import Fidelity, GridSpec, Observation
 from providers.base import BaseProvider
 
 
-def generate_synthetic_blob(ny: int, nx: int, cx: float, cy: float, zmax: float, sigma: float) -> np.ndarray:
-    """Generate a single 2D Gaussian blob representing a synthetic storm."""
-    yy, xx = np.mgrid[0:ny, 0:nx]
-    blob = zmax * np.exp(
-        -((xx - cx) ** 2) / (2 * sigma ** 2)
-        - ((yy - cy) ** 2) / (2 * sigma ** 2)
-    )
-    return blob.astype(np.float32)
-
 class SyntheticProvider(BaseProvider):
     """Generates synthetic radar-like data for development and testing.
 

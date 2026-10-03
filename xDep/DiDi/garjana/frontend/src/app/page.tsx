@@ -1,147 +1,220 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import ModeBanner from '@/components/ModeBanner'
-import Sidebar from '@/components/Sidebar'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { api, WS, type Storm, type Hazard, type Alert, type HealthData, type ForecastFrame } from '@/lib/api'
+import SystemHeader from '@/components/shell/SystemHeader'
+import NavBar from '@/components/shell/NavBar'
 import MapView from '@/components/MapView'
-import StormList from '@/components/StormList'
+import StormList from '@/components/storm/StormList'
+import StormDetail from '@/components/storm/StormDetail'
+import HazardHUD from '@/components/hazards/HazardHUD'
+import Timeline from '@/components/forecast/Timeline'
+import AlertDesk from '@/components/alerts/AlertDesk'
+import VerificationLab from '@/components/verification/VerificationLab'
+import DataHealth from '@/components/data/DataHealth'
+import ReplayPanel from '@/components/replay/ReplayPanel'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-
-interface HealthData {
-  status: string
-  run_mode: string
-  system_mode: string
-  version: string
-}
+type Screen = 'control-room' | 'storms' | 'replay' | 'alerts' | 'verification' | 'data-health'
 
 export default function ControlRoom() {
+  // ── State ──────────────────────────────────────────────────────
   const [health, setHealth] = useState<HealthData | null>(null)
-  const [activeScreen, setActiveScreen] = useState<string>('control-room')
-  const [selectedLead, setSelectedLead] = useState<number>(0)
+  const [storms, setStorms] = useState<Storm[]>([])
+  const [hazards, setHazards] = useState<Hazard[]>([])
+  const [alerts, setAlerts] = useState<Alert[]>([])
+  const [oi, setOi] = useState<number | null>(null)
+  const [frames, setFrames] = useState<ForecastFrame[]>([])
+  const [screen, setScreen] = useState<Screen>('control-room')
+  const [selectedStorm, setSelectedStorm] = useState<string | null>(null)
+  const [selectedLead, setSelectedLead] = useState(0)
+  const [wsConnected, setWsConnected] = useState(false)
+  const wsRef = useRef<WebSocket | null>(null)
 
-  useEffect(() => {
-    fetch(`${API_URL}/health`)
-      .then(r => r.json())
-      .then(setHealth)
-      .catch(() => setHealth({
-        status: 'disconnected',
-        run_mode: 'REPLAY',
-        system_mode: 'BASELINE',
-        version: '0.1.0'
-      }))
+  // ── Data fetching ──────────────────────────────────────────────
+  const refresh = useCallback(async () => {
+    try {
+      const [h, s, hz, al, o, f] = await Promise.all([
+        api.health(),
+        api.storms(),
+        api.hazards(),
+        api.alerts(),
+        api.oi(),
+        api.forecastFrames(),
+      ])
+      setHealth(h)
+      setStorms(s.storms)
+      setHazards(hz.hazards)
+      setAlerts(al.alerts)
+      if (o.oi) setOi(o.oi.composite)
+      setFrames(f.frames)
+    } catch (e) {
+      console.error('Refresh failed:', e)
+    }
   }, [])
 
+  useEffect(() => {
+    refresh()
+    const interval = setInterval(refresh, 15000)
+    return () => clearInterval(interval)
+  }, [refresh])
+
+  // ── WebSocket ──────────────────────────────────────────────────
+  useEffect(() => {
+    let ws: WebSocket
+    let reconnectTimer: ReturnType<typeof setTimeout>
+
+    const connect = () => {
+      try {
+        ws = new WebSocket(WS)
+        wsRef.current = ws
+
+        ws.onopen = () => setWsConnected(true)
+        ws.onclose = () => {
+          setWsConnected(false)
+          reconnectTimer = setTimeout(connect, 5000)
+        }
+        ws.onerror = () => ws.close()
+        ws.onmessage = (ev) => {
+          try {
+            const msg = JSON.parse(ev.data)
+            if (msg.type === 'cycle.complete') {
+              refresh()
+            }
+          } catch {}
+        }
+      } catch {
+        reconnectTimer = setTimeout(connect, 5000)
+      }
+    }
+
+    connect()
+    return () => {
+      clearTimeout(reconnectTimer)
+      ws?.close()
+    }
+  }, [refresh])
+
+  // ── Selected storm object ──────────────────────────────────────
+  const storm = storms.find(s => s.storm_id === selectedStorm) || null
+
+  // ── Render ─────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-screen">
-      {/* R9: Mode banner ALWAYS visible */}
-      <ModeBanner
-        runMode={health?.run_mode || 'REPLAY'}
-        systemMode={health?.system_mode || 'BASELINE'}
+    <div className="flex flex-col h-screen bg-g-bg noise-bg">
+      {/* System header */}
+      <SystemHeader
+        health={health}
+        stormCount={storms.length}
+        alertCount={alerts.filter(a => a.status === 'draft').length}
+        oi={oi}
       />
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar navigation */}
-        <Sidebar
-          activeScreen={activeScreen}
-          onNavigate={setActiveScreen}
-        />
+      {/* Navigation */}
+      <NavBar active={screen} onNavigate={(s) => setScreen(s as Screen)} />
 
-        {/* Main content */}
-        <main className="flex-1 flex flex-col">
-          {activeScreen === 'control-room' && (
-            <div className="flex-1 flex">
-              {/* Map */}
-              <div className="flex-1 relative">
-                <MapView />
-                {/* Time scrubber */}
-                <div className="absolute bottom-4 left-4 right-4 bg-garjana-secondary/90 backdrop-blur rounded-lg p-3">
-                  <div className="flex items-center gap-4">
-                    <span className="text-xs text-gray-400">Lead time:</span>
-                    <input
-                      type="range"
-                      min={-60}
-                      max={360}
-                      step={10}
-                      value={selectedLead}
-                      onChange={e => setSelectedLead(Number(e.target.value))}
-                      className="flex-1"
-                    />
-                    <span className="text-sm font-mono min-w-[80px] text-right">
-                      {selectedLead <= 0
-                        ? `${Math.abs(selectedLead)} min ago`
-                        : selectedLead <= 120
-                          ? `+${selectedLead} min`
-                          : `+${selectedLead} min (outlook)`
-                      }
-                    </span>
-                  </div>
-                  {selectedLead > 120 && (
-                    <p className="text-xs text-amber-400 mt-1">
-                      ⚠ Environment outlook (2-6h): coarse resolution, not cell-level
-                    </p>
-                  )}
+      {/* Main content */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* ── CONTROL ROOM ────────────────────────────────────── */}
+        {screen === 'control-room' && (
+          <>
+            {/* Map (hero) */}
+            <div className="flex-1 relative">
+              <MapView
+                storms={storms}
+                selectedStormId={selectedStorm}
+                onSelectStorm={setSelectedStorm}
+              />
+
+              {/* Hazard HUD - floating top-left */}
+              {hazards.length > 0 && (
+                <div className="absolute top-4 left-4 z-10">
+                  <HazardHUD hazards={hazards} />
+                </div>
+              )}
+
+              {/* Timeline - floating bottom */}
+              <div className="absolute bottom-0 left-0 right-80 z-10">
+                <div className="mx-4 mb-4">
+                  <Timeline
+                    selectedLead={selectedLead}
+                    onLeadChange={setSelectedLead}
+                    frames={frames}
+                  />
                 </div>
               </div>
+            </div>
+
+            {/* Right panel: storms + detail */}
+            <div className="w-80 flex flex-col border-l border-g-border bg-g-surface/80 backdrop-blur-sm">
+              {/* Storm detail (if selected) */}
+              {selectedStorm && storm && (
+                <div className="border-b border-g-border">
+                  <div className="p-3 flex items-center justify-between border-b border-g-border/50">
+                    <span className="text-[10px] uppercase tracking-widest text-g-text-muted">Storm Intelligence</span>
+                    <button
+                      onClick={() => setSelectedStorm(null)}
+                      className="text-g-text-muted hover:text-g-text text-xs"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <StormDetail storm={storm} />
+                </div>
+              )}
 
               {/* Storm list */}
-              <div className="w-80 bg-garjana-secondary border-l border-gray-700 overflow-y-auto">
-                <StormList />
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-3 border-b border-g-border/50">
+                  <span className="text-[10px] uppercase tracking-widest text-g-text-muted">
+                    Active Cells ({storms.length})
+                  </span>
+                </div>
+                <StormList
+                  storms={storms}
+                  selectedId={selectedStorm}
+                  onSelect={setSelectedStorm}
+                />
               </div>
             </div>
-          )}
+          </>
+        )}
 
-          {activeScreen === 'storm-detail' && (
-            <div className="p-6">
-              <h2 className="text-xl font-bold mb-4">Storm Detail</h2>
-              <p className="text-gray-400">Select a storm from the Control Room to view details.</p>
+        {/* ── STORMS ──────────────────────────────────────────── */}
+        {screen === 'storms' && (
+          <div className="flex-1 flex">
+            <div className="flex-1 relative">
+              <MapView
+                storms={storms}
+                selectedStormId={selectedStorm}
+                onSelectStorm={setSelectedStorm}
+              />
             </div>
-          )}
-
-          {activeScreen === 'asset-watch' && (
-            <div className="p-6">
-              <h2 className="text-xl font-bold mb-4">Asset Watch</h2>
-              <p className="text-gray-400">Subscribed assets and ETA bands.</p>
-            </div>
-          )}
-
-          {activeScreen === 'alert-desk' && (
-            <div className="p-6">
-              <h2 className="text-xl font-bold mb-4">Alert Desk</h2>
-              <p className="text-gray-400">Draft queue → review → approve → CAP preview.</p>
-              <div className="mt-4 grid gap-4">
-                <div className="bg-garjana-dark rounded-lg p-4 border border-gray-700">
-                  <h3 className="text-sm font-semibold text-amber-400">Draft Queue</h3>
-                  <p className="text-gray-500 text-sm mt-2">No draft alerts. R10: Alerts require human approval.</p>
-                </div>
+            <div className="w-96 border-l border-g-border bg-g-surface/80 overflow-y-auto">
+              <div className="p-4 border-b border-g-border">
+                <h2 className="text-sm font-semibold">Storm Intelligence</h2>
+                <p className="text-[10px] text-g-text-muted mt-1">{storms.length} active cells detected</p>
               </div>
-            </div>
-          )}
-
-          {activeScreen === 'verification' && (
-            <div className="p-6">
-              <h2 className="text-xl font-bold mb-4">Verification Scoreboard</h2>
-              <p className="text-gray-400">Live scores vs baselines by lead time.</p>
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <div className="bg-garjana-dark rounded-lg p-4 border border-gray-700">
-                  <h3 className="text-sm font-semibold">CSI vs Lead Time</h3>
-                  <p className="text-gray-500 text-xs mt-1">Baseline vs model comparison</p>
+              {storm ? (
+                <StormDetail storm={storm} />
+              ) : (
+                <div className="p-4">
+                  <StormList storms={storms} selectedId={selectedStorm} onSelect={setSelectedStorm} />
                 </div>
-                <div className="bg-garjana-dark rounded-lg p-4 border border-gray-700">
-                  <h3 className="text-sm font-semibold">Reliability Diagram</h3>
-                  <p className="text-gray-500 text-xs mt-1">Probabilistic calibration</p>
-                </div>
-              </div>
+              )}
             </div>
-          )}
+          </div>
+        )}
 
-          {activeScreen === 'data-health' && (
-            <div className="p-6">
-              <h2 className="text-xl font-bold mb-4">Data Health</h2>
-              <p className="text-gray-400">Per-source freshness, fidelity, QC flags.</p>
-            </div>
-          )}
-        </main>
+        {/* ── REPLAY ──────────────────────────────────────────── */}
+        {screen === 'replay' && <ReplayPanel />}
+
+        {/* ── ALERTS ──────────────────────────────────────────── */}
+        {screen === 'alerts' && <AlertDesk />}
+
+        {/* ── VERIFICATION ────────────────────────────────────── */}
+        {screen === 'verification' && <VerificationLab />}
+
+        {/* ── DATA HEALTH ─────────────────────────────────────── */}
+        {screen === 'data-health' && <DataHealth />}
       </div>
     </div>
   )

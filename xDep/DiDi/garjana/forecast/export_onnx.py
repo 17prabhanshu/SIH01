@@ -15,7 +15,7 @@ def export_to_onnx(
     try:
         import torch
 
-        from forecast.residual_unet import ResidualUNet  # noqa: F401
+        from garjana.forecast.residual_unet import ResidualUNet
     except ImportError:
         raise ImportError("torch required for ONNX export")
 

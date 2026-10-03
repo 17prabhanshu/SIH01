@@ -12,7 +12,7 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./garjana/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U garjana"]
       interval: 5s
@@ -51,7 +51,7 @@ services:
       - ./config:/app/config
       - ./data:/app/data
       - ./replay_bundles:/app/replay_bundles
-    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn garjana.api.main:app --host 0.0.0.0 --port 8000 --reload
 
   # Garjana Worker (forecast cycle)
   worker:
@@ -72,7 +72,7 @@ services:
       - ./config:/app/config
       - ./data:/app/data
       - ./replay_bundles:/app/replay_bundles
-    command: python -m workers.cycle
+    command: python -m garjana.workers.cycle
 
   # Frontend (Next.js)
   frontend:

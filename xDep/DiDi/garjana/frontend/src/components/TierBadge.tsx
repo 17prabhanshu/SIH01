@@ -1,36 +1,35 @@
-'use client'
+'use client';
 
 interface TierBadgeProps {
-  tier: string
+  tier?: string;
+  size?: 'sm' | 'xs';
 }
 
-/**
- * R3: Every hazard value must show its validation tier.
- * The UI refuses to render a hazard without a tier badge.
- */
-export default function TierBadge({ tier }: TierBadgeProps) {
-  const tierClasses: Record<string, string> = {
-    validated: 'tier-badge tier-validated',
-    experimental: 'tier-badge tier-experimental',
-    environment_only: 'tier-badge tier-environment_only',
-    proxy: 'tier-badge tier-proxy',
+export default function TierBadge({ tier, size = 'sm' }: TierBadgeProps) {
+  const t = tier?.toLowerCase() || '';
+  
+  let colorClass = 'bg-rose-500/20 text-rose-400 border border-rose-500/30';
+  let label = 'NO TIER';
+
+  if (t === 'validated') {
+    colorClass = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+    label = 'Validated';
+  } else if (t === 'experimental') {
+    colorClass = 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
+    label = 'Experimental';
+  } else if (t === 'proxy') {
+    colorClass = 'bg-gray-500/20 text-gray-400 border border-gray-500/30';
+    label = 'Proxy';
+  } else if (t === 'environment' || t === 'environment_only') {
+    colorClass = 'bg-sky-500/20 text-sky-400 border border-sky-500/30';
+    label = 'Environment';
   }
 
-  const tierLabels: Record<string, string> = {
-    validated: 'Validated',
-    experimental: 'Experimental',
-    environment_only: 'Env-only',
-    proxy: 'Proxy',
-  }
-
-  if (!tier) {
-    // R3: Refuse to render without tier
-    return <span className="tier-badge bg-red-900 text-red-200 border border-red-500">NO TIER</span>
-  }
+  const sizeClass = size === 'xs' ? 'text-[9px] px-1 py-0' : 'text-[10px] px-1.5 py-0.5';
 
   return (
-    <span className={tierClasses[tier] || 'tier-badge bg-gray-600 text-gray-300'}>
-      {tierLabels[tier] || tier}
+    <span className={`rounded-full uppercase tracking-wider font-medium ${sizeClass} ${colorClass}`}>
+      {label}
     </span>
-  )
+  );
 }

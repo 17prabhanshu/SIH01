@@ -4,14 +4,12 @@ All thresholds and constants live in config/*.yaml with source comments.
 No magic numbers in code (R14).
 """
 from __future__ import annotations
-
 import os
 from pathlib import Path
 from typing import Any
-
 import yaml
 
-_CONFIG_DIR = Path(__file__).parent.parent / "config"
+_CONFIG_DIR = Path(__file__).parent.parent.parent / "config"
 
 
 def _resolve_config_dir() -> Path:
@@ -24,13 +22,13 @@ def _resolve_config_dir() -> Path:
 
 def load_config(name: str) -> dict[str, Any]:
     """Load a YAML config file by name (without extension).
-
+    
     Args:
         name: Config file name without .yaml extension
-
+        
     Returns:
         Parsed YAML as dict
-
+        
     Raises:
         FileNotFoundError: If config file doesn't exist
     """

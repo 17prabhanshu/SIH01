@@ -67,8 +67,8 @@ def _simple_advection(
 
     for step in range(n_steps):
         # Backtrack coordinates
-        src_y = yy - motion[0] * (step + 1)
-        src_x = xx - motion[1] * (step + 1)
+        src_y = yy - motion[1] * (step + 1)
+        src_x = xx - motion[0] * (step + 1)
 
         # Bilinear interpolation
         forecasts[step] = map_coordinates(
