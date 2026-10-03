@@ -78,7 +78,7 @@ export default function VerificationLab() {
         {/* Chart */}
         <div className="glass-panel rounded-lg p-6 mb-6">
           <div className="text-[10px] uppercase tracking-widest text-g-text-muted mb-4">
-            {selectedMetric === 'csi' ? 'Critical Success Index' : 'Fractions Skill Score'} vs Lead Time
+            {selectedMetric === 'csi' ? 'Forecast Accuracy Score' : 'Fractions Skill Score'} vs Lead Time
           </div>
 
           {/* SVG Chart */}

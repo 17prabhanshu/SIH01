@@ -26,18 +26,18 @@ export default function MapView({ storms = [], selectedStormId, onSelectStorm, c
       style: {
         version: 8,
         sources: {
-          osm: {
+          carto: {
             type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'],
             tileSize: 256,
-            attribution: '&copy; OpenStreetMap',
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
           },
         },
         layers: [
           {
-            id: 'osm',
+            id: 'carto-dark',
             type: 'raster',
-            source: 'osm',
+            source: 'carto',
             paint: {},
           },
         ],
@@ -45,64 +45,37 @@ export default function MapView({ storms = [], selectedStormId, onSelectStorm, c
       center: [80.5, 26.7],
       zoom: 5,
       minZoom: 3,
-      maxZoom: 15,
+      maxZoom: 12,
     })
 
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
 
     m.on('load', () => {
-      // Darken the basemap
-      m.getCanvas().style.filter = 'brightness(0.3) contrast(1.3) saturate(0.15)'
-
       // Add storms source
       m.addSource('storms', {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] },
       })
 
-      // Storm fill circles
+      // Clean, simple storm circles
       m.addLayer({
         id: 'storms-fill',
         type: 'circle',
         source: 'storms',
         paint: {
-          'circle-radius': ['interpolate', ['linear'], ['get', 'area'], 16, 5, 500, 10, 2000, 18, 5000, 28],
+          'circle-radius': ['interpolate', ['linear'], ['get', 'area'], 16, 6, 500, 12, 2000, 20, 5000, 30],
           'circle-color': [
             'interpolate', ['linear'], ['get', 'zmax'],
-            25, '#22d3ee',
-            35, '#f59e0b',
-            45, '#f97316',
-            55, '#f43f5e',
+            25, '#3b82f6', // blue
+            35, '#f59e0b', // amber
+            45, '#f97316', // orange
+            55, '#ef4444', // red
           ],
-          'circle-opacity': 0.7,
-          'circle-stroke-width': 1.5,
-          'circle-stroke-color': [
-            'interpolate', ['linear'], ['get', 'zmax'],
-            25, 'rgba(34,211,238,0.5)',
-            35, 'rgba(245,158,11,0.5)',
-            45, 'rgba(249,115,22,0.5)',
-            55, 'rgba(244,63,94,0.5)',
-          ],
+          'circle-opacity': 0.85,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
         },
       })
-
-      // Storm glow layer (behind)
-      m.addLayer({
-        id: 'storms-glow',
-        type: 'circle',
-        source: 'storms',
-        paint: {
-          'circle-radius': ['interpolate', ['linear'], ['get', 'area'], 16, 12, 500, 20, 2000, 30, 5000, 45],
-          'circle-color': [
-            'interpolate', ['linear'], ['get', 'zmax'],
-            25, 'rgba(34,211,238,0.08)',
-            35, 'rgba(245,158,11,0.08)',
-            45, 'rgba(249,115,22,0.1)',
-            55, 'rgba(244,63,94,0.12)',
-          ],
-          'circle-blur': 1,
-        },
-      }, 'storms-fill')
 
       // Click handler
       m.on('click', 'storms-fill', (e) => {
@@ -118,7 +91,7 @@ export default function MapView({ storms = [], selectedStormId, onSelectStorm, c
         popupRef.current?.remove()
       })
 
-      // Hover popup
+      // Hover popup with plain English
       m.on('mousemove', 'storms-fill', (e) => {
         if (!e.features?.[0]) return
         const p = e.features[0].properties!
@@ -131,10 +104,16 @@ export default function MapView({ storms = [], selectedStormId, onSelectStorm, c
         popupRef.current
           .setLngLat(coords)
           .setHTML(`
-            <div style="font-family:Inter,sans-serif;font-size:11px;line-height:1.6">
-              <div style="font-weight:600;color:#e8eaf0;margin-bottom:4px">${p.id}</div>
-              <div style="color:#8b8fa3">Zmax <span style="color:#e8eaf0;font-weight:600;font-family:monospace">${parseFloat(p.zmax).toFixed(1)}</span> dBZ</div>
-              <div style="color:#8b8fa3">Area <span style="color:#e8eaf0;font-family:monospace">${parseFloat(p.area).toFixed(0)}</span> km²</div>
+            <div style="font-family:inherit;font-size:13px;line-height:1.6;">
+              <div style="font-weight:600;margin-bottom:6px;border-bottom:1px solid #334155;padding-bottom:4px;">Storm Cell ${p.id}</div>
+              <div style="display:flex;justify-content:space-between;gap:12px;">
+                <span style="color:#94a3b8">Intensity:</span>
+                <span style="font-weight:500">${parseFloat(p.zmax).toFixed(1)} dBZ</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;gap:12px;">
+                <span style="color:#94a3b8">Size:</span>
+                <span style="font-weight:500">${parseFloat(p.area).toFixed(0)} sq km</span>
+              </div>
             </div>
           `)
           .addTo(m)
@@ -167,7 +146,6 @@ export default function MapView({ storms = [], selectedStormId, onSelectStorm, c
         id: s.storm_id,
         zmax: s.zmax,
         area: s.area_km2,
-        selected: s.storm_id === selectedStormId ? 1 : 0,
       },
     }))
 
@@ -183,28 +161,13 @@ export default function MapView({ storms = [], selectedStormId, onSelectStorm, c
     mapRef.current.flyTo({
       center: [storm.centroid_lon, storm.centroid_lat],
       zoom: 8,
-      duration: 1200,
+      duration: 1000,
     })
   }, [selectedStormId, storms])
 
   return (
     <div className={"relative w-full h-full bg-g-bg overflow-hidden " + className}>
       <div ref={containerRef} className="absolute inset-0 w-full h-full" />
-
-      {/* Vignette */}
-      <div
-        className="absolute inset-0 pointer-events-none z-10"
-        style={{ boxShadow: 'inset 0 0 120px rgba(10,11,15,0.8)' }}
-      />
-
-      {/* Subtle grid */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.04] z-10"
-        style={{
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)',
-          backgroundSize: '60px 60px',
-        }}
-      />
     </div>
   )
 }

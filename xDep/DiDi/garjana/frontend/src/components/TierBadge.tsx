@@ -1,35 +1,30 @@
-'use client';
+'use client'
 
 interface TierBadgeProps {
-  tier?: string;
-  size?: 'sm' | 'xs';
+  tier?: string
+  size?: 'sm' | 'xs'
 }
 
 export default function TierBadge({ tier, size = 'sm' }: TierBadgeProps) {
-  const t = tier?.toLowerCase() || '';
-  
-  let colorClass = 'bg-rose-500/20 text-rose-400 border border-rose-500/30';
-  let label = 'NO TIER';
-
-  if (t === 'validated') {
-    colorClass = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-    label = 'Validated';
-  } else if (t === 'experimental') {
-    colorClass = 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
-    label = 'Experimental';
-  } else if (t === 'proxy') {
-    colorClass = 'bg-gray-500/20 text-gray-400 border border-gray-500/30';
-    label = 'Proxy';
-  } else if (t === 'environment' || t === 'environment_only') {
-    colorClass = 'bg-sky-500/20 text-sky-400 border border-sky-500/30';
-    label = 'Environment';
+  if (!tier) {
+    return (
+      <span className={`inline-flex items-center rounded-full bg-g-rose/10 px-2 py-0.5 font-medium text-g-rose ${size === 'xs' ? 'text-[10px]' : 'text-xs'}`}>
+        Unvalidated
+      </span>
+    )
   }
 
-  const sizeClass = size === 'xs' ? 'text-[9px] px-1 py-0' : 'text-[10px] px-1.5 py-0.5';
+  const t = tier.toLowerCase()
+  let colorClass = 'bg-g-dim/10 text-g-dim'
+
+  if (t === 'validated') colorClass = 'bg-g-emerald/10 text-g-emerald'
+  else if (t === 'experimental') colorClass = 'bg-g-amber/10 text-g-amber'
+  else if (t === 'proxy') colorClass = 'bg-g-dim/10 text-g-dim'
+  else if (t === 'environment_only') colorClass = 'bg-g-cyan/10 text-g-cyan'
 
   return (
-    <span className={`rounded-full uppercase tracking-wider font-medium ${sizeClass} ${colorClass}`}>
-      {label}
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium capitalize ${colorClass} ${size === 'xs' ? 'text-[10px]' : 'text-xs'}`}>
+      {t.replace('_', ' ')}
     </span>
-  );
+  )
 }
