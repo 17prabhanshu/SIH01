@@ -26,18 +26,18 @@ export default function MapView({ storms = [], selectedStormId, onSelectStorm, c
       style: {
         version: 8,
         sources: {
-          carto: {
+          esri: {
             type: 'raster',
-            tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'],
+            tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'],
             tileSize: 256,
-            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            attribution: '&copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
           },
         },
         layers: [
           {
-            id: 'carto-dark',
+            id: 'esri-dark',
             type: 'raster',
-            source: 'carto',
+            source: 'esri',
             paint: {},
           },
         ],

@@ -18,8 +18,9 @@ export default function StormList({ storms, selectedId, onSelect }: StormListPro
     )
   }
 
-  // Sort by zmax descending
+  // Sort by zmax descending and limit to top 100 for performance
   const sorted = [...storms].sort((a, b) => b.zmax - a.zmax)
+  const displayStorms = sorted.slice(0, 100)
 
   const getColor = (zmax: number) => {
     if (zmax >= 55) return 'bg-g-rose'
@@ -30,7 +31,12 @@ export default function StormList({ storms, selectedId, onSelect }: StormListPro
 
   return (
     <div className="flex flex-col">
-      {sorted.map(s => {
+      {storms.length > 100 && (
+        <div className="p-2 text-[10px] uppercase tracking-widest text-center text-g-dim border-b border-g-border bg-g-bg/50">
+          Showing top 100 of {storms.length} cells
+        </div>
+      )}
+      {displayStorms.map(s => {
         const isSelected = selectedId === s.storm_id
         return (
           <button
