@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Storm } from '@/lib/api'
@@ -26,17 +26,19 @@ export default function MapView({ storms = [], selectedStormId, onSelectStorm }:
         sources: {
           carto: {
             type: 'raster',
-            tiles: ['https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=cb1_4a82_1_54ed6262c0ce94e01e267b3c'],
+            tiles: ['https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'],
             tileSize: 256,
             attribution: '&copy; CARTO',
           },
         },
         layers: [{ id: 'carto', type: 'raster', source: 'carto' }],
       },
-      center: [77.5, 22.0],
-      zoom: 4.8,
+      center: [78.0, 22.0],
+      zoom: 4.5,
       minZoom: 3,
       maxZoom: 14,
+      pitch: 30,
+      bearing: -5,
     })
 
     m.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'bottom-right')
@@ -44,15 +46,29 @@ export default function MapView({ storms = [], selectedStormId, onSelectStorm }:
     m.on('load', () => {
       m.addSource('storms', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
 
-      // Meteorological Cell Display (Clean & Professional)
+      // Outer glow ring
+      m.addLayer({
+        id: 'storm-glow', type: 'circle', source: 'storms',
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['get', 'area'], 10, 20, 500, 30, 5000, 55],
+          'circle-color': ['interpolate', ['linear'], ['get', 'zmax'],
+            25, 'rgba(59,130,246,0.08)', 35, 'rgba(245,158,11,0.1)', 45, 'rgba(249,115,22,0.12)', 55, 'rgba(239,68,68,0.15)'],
+          'circle-blur': 1.2,
+          'circle-pitch-alignment': 'map',
+        },
+      })
+
+      // Core marker
       m.addLayer({
         id: 'storms-core', type: 'circle', source: 'storms',
         paint: {
-          'circle-radius': ['interpolate', ['linear'], ['get', 'area'], 10, 6, 500, 12, 5000, 24],
-          'circle-color': ['interpolate', ['linear'], ['get', 'zmax'], 25, '#38bdf8', 35, '#facc15', 45, '#f97316', 55, '#ef4444'],
-          'circle-opacity': 0.7,
+          'circle-radius': ['interpolate', ['linear'], ['get', 'area'], 10, 5, 500, 10, 5000, 20],
+          'circle-color': ['interpolate', ['linear'], ['get', 'zmax'],
+            25, '#3b82f6', 35, '#f59e0b', 45, '#f97316', 55, '#ef4444'],
+          'circle-opacity': 0.9,
           'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
+          'circle-stroke-color': 'rgba(255,255,255,0.3)',
+          'circle-pitch-alignment': 'map',
         },
       })
 
@@ -71,19 +87,22 @@ export default function MapView({ storms = [], selectedStormId, onSelectStorm }:
         const p = e.features[0].properties!
         const coords = (e.features[0].geometry as any).coordinates
         const zmax = parseFloat(p.zmax)
-        
+        const severity = zmax > 50 ? 'Severe' : zmax > 40 ? 'Significant' : zmax > 30 ? 'Moderate' : 'Weak'
+        const color = zmax > 50 ? '#ef4444' : zmax > 40 ? '#f97316' : zmax > 30 ? '#f59e0b' : '#3b82f6'
+
         if (!popup.current) popup.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12 })
 
         popup.current.setLngLat(coords).setHTML(`
-          <div>
-            <div style="font-size:14px;font-weight:600;margin-bottom:8px;color:#0f172a;">Convective Cell</div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px;gap:16px;">
-              <span style="font-size:12px;color:#64748b">Max Reflectivity</span>
-              <span style="font-size:12px;font-weight:600;color:${zmax > 45 ? '#ea580c' : '#0f172a'}">${zmax.toFixed(1)} dBZ</span>
+          <div style="min-width:180px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+              <div style="width:8px;height:8px;border-radius:50%;background:${color}"></div>
+              <span style="font-size:13px;font-weight:600;color:#fafafa">${severity} Convective Cell</span>
             </div>
-            <div style="display:flex;justify-content:space-between;">
-              <span style="font-size:12px;color:#64748b">Cell Area</span>
-              <span style="font-size:12px;color:#0f172a">${parseFloat(p.area).toFixed(0)} km²</span>
+            <div style="display:grid;grid-template-columns:1fr auto;gap:6px;font-size:12px">
+              <span style="color:#a1a1aa">Max Reflectivity</span>
+              <span style="font-weight:600;font-family:'JetBrains Mono';color:${color}">${zmax.toFixed(1)} dBZ</span>
+              <span style="color:#a1a1aa">Cell Area</span>
+              <span style="font-weight:500;font-family:'JetBrains Mono'">${parseFloat(p.area).toFixed(0)} km²</span>
             </div>
           </div>
         `).addTo(m)
@@ -92,14 +111,13 @@ export default function MapView({ storms = [], selectedStormId, onSelectStorm }:
 
     map.current = m
     return () => { m.remove(); map.current = null }
-  }, []) // eslint-disable-line
+  }, [])
 
   useEffect(() => {
     const m = map.current
     if (!m?.isStyleLoaded()) return
     const src = m.getSource('storms') as maplibregl.GeoJSONSource
     if (!src) return
-
     src.setData({
       type: 'FeatureCollection',
       features: storms.map(s => ({
@@ -113,8 +131,8 @@ export default function MapView({ storms = [], selectedStormId, onSelectStorm }:
   useEffect(() => {
     if (!selectedStormId || !map.current) return
     const s = storms.find(x => x.storm_id === selectedStormId)
-    if (s) map.current.flyTo({ center: [s.centroid_lon, s.centroid_lat], zoom: 8, duration: 1200 })
+    if (s) map.current.flyTo({ center: [s.centroid_lon, s.centroid_lat], zoom: 8, duration: 1200, pitch: 45 })
   }, [selectedStormId, storms])
 
-  return <div ref={container} className="w-full h-full bg-slate-100" />
+  return <div ref={container} className="w-full h-full" />
 }

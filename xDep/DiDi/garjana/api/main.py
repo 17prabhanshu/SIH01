@@ -317,6 +317,18 @@ async def approve_alert(alert_id: str, approved_by: str = "forecaster") -> dict:
         if a["alert_id"] == alert_id:
             a["status"] = "approved"
             a["approved_by"] = approved_by
+            # Generate CAP XML payload
+            try:
+                from api.cap import generate_cap_xml
+                a["cap_xml"] = generate_cap_xml(
+                    alert_id=a["alert_id"],
+                    hazard=a["hazard"],
+                    severity="SEVERE" if a.get("validation_tier") == "validated" else "SIGNIFICANT",
+                    timestamp=a["issued"],
+                    affected_area_km2=50.0 # Mocked area for now
+                )
+            except Exception as e:
+                logger.error(f"CAP XML Error: {e}")
             return {**a, "run_mode": get_run_mode().value}
     return {"error": "alert not found", "alert_id": alert_id}
 
@@ -416,3 +428,140 @@ async def replay_pause(event_id: str) -> dict:
 @app.get("/replay/{event_id}/seek")
 async def replay_seek(event_id: str, time: str = "") -> dict:
     return {"event_id": event_id, "seek_to": time, "status": "not_implemented"}
+
+
+# ---------------------------------------------------------------------------
+# Per-Storm Threat Analysis
+# ---------------------------------------------------------------------------
+@app.get("/storms/{storm_id}/threats")
+async def storm_threat_analysis(storm_id: str) -> dict:
+    """Full threat analysis for a specific storm cell with recommended actions."""
+    storm = None
+    for s in _last_storms:
+        if s["storm_id"] == storm_id:
+            storm = s
+            break
+    if not storm:
+        return {"error": "storm not found", "storm_id": storm_id}
+
+    zmax = storm.get("zmax", 0)
+    area = storm.get("area_km2", 0)
+    vil = storm.get("vil_kg_m2", 0)
+
+    # Build per-hazard assessment
+    threats = []
+
+    # Heavy Rain
+    rain_prob = min(1.0, max(0, (zmax - 25) / 35))
+    threats.append({
+        "hazard": "heavy_rain",
+        "label": "Heavy Rainfall",
+        "probability": round(rain_prob, 3),
+        "severity": "high" if rain_prob > 0.6 else "moderate" if rain_prob > 0.3 else "low",
+        "explanation": f"Based on max reflectivity of {zmax:.1f} dBZ across {area:.0f} km². Z-R conversion indicates {'significant' if zmax > 45 else 'moderate' if zmax > 35 else 'light'} precipitation rates.",
+        "actions": ["Issue IMD Nowcast bulletin", "Alert District Collector"] if rain_prob > 0.3 else ["Continue monitoring"],
+    })
+
+    # Lightning
+    ltg_prob = min(1.0, max(0, (zmax - 30) / 30 * 0.6 + vil / 40 * 0.4))
+    threats.append({
+        "hazard": "lightning",
+        "label": "Lightning",
+        "probability": round(ltg_prob, 3),
+        "severity": "high" if ltg_prob > 0.6 else "moderate" if ltg_prob > 0.3 else "low",
+        "explanation": f"VIL of {vil:.1f} kg/m² indicates {'strong' if vil > 20 else 'moderate' if vil > 10 else 'weak'} vertical moisture content. Lightning probability scales with VIL density and echo-top height.",
+        "actions": ["Issue Lightning Advisory", "Alert outdoor event organisers", "Power grid standby"] if ltg_prob > 0.4 else ["Continue monitoring"],
+    })
+
+    # Hail
+    hail_prob = min(1.0, max(0, (zmax - 50) / 15 * 0.5 + (vil - 20) / 30 * 0.5)) if zmax > 45 else 0.0
+    threats.append({
+        "hazard": "hail",
+        "label": "Hail Risk",
+        "probability": round(max(0, hail_prob), 3),
+        "severity": "high" if hail_prob > 0.5 else "moderate" if hail_prob > 0.2 else "low",
+        "explanation": f"Hail-favourable conditions {'detected' if hail_prob > 0.2 else 'not currently indicated'}. Requires Zmax > 50 dBZ and high VIL density.",
+        "actions": ["Agricultural hail advisory", "Vehicle shelter warning"] if hail_prob > 0.2 else ["No action required"],
+    })
+
+    # Wind
+    wind_prob = min(1.0, max(0, (zmax - 45) / 20))
+    threats.append({
+        "hazard": "wind",
+        "label": "Damaging Wind Risk",
+        "probability": round(wind_prob, 3),
+        "severity": "high" if wind_prob > 0.5 else "moderate" if wind_prob > 0.2 else "low",
+        "explanation": f"Strong reflectivity core {'suggests downburst potential' if zmax > 50 else 'within normal convective range'}. DCAPE analysis required for calibrated wind assessment.",
+        "actions": ["Alert Airport Authority (AAI)", "Suspend construction cranes"] if wind_prob > 0.3 else ["Continue monitoring"],
+    })
+
+    # Overall severity
+    max_prob = max(t["probability"] for t in threats)
+    overall = "SEVERE" if max_prob > 0.6 else "SIGNIFICANT" if max_prob > 0.4 else "MODERATE" if max_prob > 0.2 else "WEAK"
+
+    return {
+        "storm_id": storm_id,
+        "storm": storm,
+        "overall_severity": overall,
+        "max_threat_probability": round(max_prob, 3),
+        "threats": threats,
+        "escalation": {
+            "ndrf_required": max_prob > 0.6,
+            "sachet_alert": max_prob > 0.5,
+            "imd_nowcast": max_prob > 0.3,
+            "district_notification": max_prob > 0.2,
+        },
+        "run_mode": get_run_mode().value,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Regional Summary
+# ---------------------------------------------------------------------------
+@app.get("/regional-summary")
+async def regional_summary() -> dict:
+    """Aggregated threat summary across all active storms."""
+    if not _last_storms:
+        return {"regions": [], "status": "no_data", "run_mode": get_run_mode().value}
+
+    # Cluster storms by rough geographic regions
+    regions: dict[str, list] = {}
+    for s in _last_storms:
+        lat, lon = s.get("centroid_lat", 0), s.get("centroid_lon", 0)
+        if lat > 28: region = "North India"
+        elif lat > 23: region = "Central India"
+        elif lat > 18: region = "West India"
+        elif lat > 12: region = "South India"
+        else: region = "Deep South"
+
+        if lon > 88: region = "East India"
+        elif lon < 72: region = "West India"
+
+        if region not in regions:
+            regions[region] = []
+        regions[region].append(s)
+
+    summary = []
+    for region_name, region_storms in regions.items():
+        max_zmax = max(s.get("zmax", 0) for s in region_storms)
+        total_area = sum(s.get("area_km2", 0) for s in region_storms)
+        severity = "SEVERE" if max_zmax > 55 else "SIGNIFICANT" if max_zmax > 45 else "MODERATE" if max_zmax > 35 else "WEAK"
+
+        summary.append({
+            "region": region_name,
+            "num_cells": len(region_storms),
+            "max_reflectivity_dbz": round(max_zmax, 1),
+            "total_affected_area_km2": round(total_area, 0),
+            "severity": severity,
+            "primary_hazards": ["Heavy Rainfall", "Lightning"] + (["Hail Risk"] if max_zmax > 50 else []),
+            "recommended_action": (
+                "Immediate NDRF deployment and SACHET flash flood warning"
+                if severity == "SEVERE"
+                else "Issue IMD Nowcast and alert District Collectors"
+                if severity == "SIGNIFICANT"
+                else "Continue monitoring with enhanced radar surveillance"
+            ),
+        })
+
+    summary.sort(key=lambda x: x["max_reflectivity_dbz"], reverse=True)
+    return {"regions": summary, "total_cells": len(_last_storms), "run_mode": get_run_mode().value}
