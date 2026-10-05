@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [frames, setFrames] = useState<ForecastFrame[]>([])
   const [tab, setTab] = useState<Tab>('overview')
   const [selectedStorm, setSelectedStorm] = useState<string | null>(null)
+  const [bundle, setBundle] = useState<string>('ICB_MUM_2023_07_20')
   const [leadTime, setLeadTime] = useState(0)
   const [wsConnected, setWsConnected] = useState(false)
   const [cycleRunning, setCycleRunning] = useState(false)
@@ -59,7 +60,7 @@ export default function Dashboard() {
 
   const runCycle = async () => {
     setCycleRunning(true)
-    try { await api.runReplay(); await refresh() } catch {}
+    try { await api.runReplay(bundle); await refresh() } catch {}
     setCycleRunning(false)
   }
 
@@ -338,13 +339,29 @@ export default function Dashboard() {
             </div>
 
             <div className="bg-gray-800/40 border border-gray-700/50 rounded-xl p-6 mb-6">
-              <div className="text-sm font-semibold text-white mb-4">Available Events</div>
+              <div className="text-sm font-semibold text-white mb-4">Available Events (Indian Datasets)</div>
               <div className="space-y-2 mb-5">
-                <div className="flex items-center gap-3 p-3 rounded-lg border border-orange-500/20 bg-orange-500/5">
-                  <div className="w-2 h-2 rounded-full bg-orange-400" />
+                {/* Mumbai Event */}
+                <div 
+                  className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${bundle === 'ICB_MUM_2023_07_20' ? 'border-orange-500/50 bg-orange-500/10' : 'border-gray-700/50 bg-gray-800/30 hover:border-gray-600'}`}
+                  onClick={() => setBundle('ICB_MUM_2023_07_20')}
+                >
+                  <div className={`w-2 h-2 rounded-full ${bundle === 'ICB_MUM_2023_07_20' ? 'bg-orange-400' : 'bg-gray-600'}`} />
                   <div>
-                    <div className="text-sm font-medium text-gray-200">SEVIR 2018-05-12</div>
-                    <div className="text-xs text-gray-500">24 radar frames + 24 satellite frames · archived severe weather event</div>
+                    <div className={`text-sm font-medium ${bundle === 'ICB_MUM_2023_07_20' ? 'text-gray-200' : 'text-gray-400'}`}>Mumbai Cloudburst (ICB)</div>
+                    <div className="text-xs text-gray-500">20 July 2023 · MOSDAC INSAT-3DR & IMD Doppler Radar (36 frames)</div>
+                  </div>
+                </div>
+                
+                {/* Delhi Event */}
+                <div 
+                  className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${bundle === 'ICB_DEL_2024_05_10' ? 'border-orange-500/50 bg-orange-500/10' : 'border-gray-700/50 bg-gray-800/30 hover:border-gray-600'}`}
+                  onClick={() => setBundle('ICB_DEL_2024_05_10')}
+                >
+                  <div className={`w-2 h-2 rounded-full ${bundle === 'ICB_DEL_2024_05_10' ? 'bg-orange-400' : 'bg-gray-600'}`} />
+                  <div>
+                    <div className={`text-sm font-medium ${bundle === 'ICB_DEL_2024_05_10' ? 'text-gray-200' : 'text-gray-400'}`}>Delhi Squall / Convection</div>
+                    <div className="text-xs text-gray-500">10 May 2024 · MOSDAC INSAT-3DR & IMD Doppler Radar (24 frames)</div>
                   </div>
                 </div>
               </div>
