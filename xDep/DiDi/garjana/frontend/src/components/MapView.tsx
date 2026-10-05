@@ -35,37 +35,49 @@ export default function MapView({ storms = [], selectedStormId, onSelectStorm }:
         },
         layers: [{ id: 'carto', type: 'raster', source: 'carto' }],
       },
-      center: [80.5, 23],
-      zoom: 4.5,
+      center: [77.5, 22.0],
+      zoom: 4.8,
       minZoom: 3,
       maxZoom: 14,
+      pitch: 62, // 3D tilt
+      bearing: 15,
       fadeDuration: 200,
     })
 
-    m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
-
+    // Cinematic Auto-rotation
+    let animationId: number
+    const rotateCamera = () => {
+      if (!map.current) return
+      map.current.setBearing(map.current.getBearing() - 0.05)
+      animationId = requestAnimationFrame(rotateCamera)
+    }
+    
     m.on('load', () => {
+      rotateCamera()
+      
       m.addSource('storms', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
 
-      // Glow
+      // Extruded 3D glow columns (simulating volumetric radar)
       m.addLayer({
-        id: 'storm-glow', type: 'circle', source: 'storms',
+        id: 'storm-volumetric', type: 'circle', source: 'storms',
         paint: {
-          'circle-radius': ['interpolate', ['linear'], ['get', 'area'], 16, 16, 500, 24, 2000, 36, 5000, 50],
-          'circle-color': ['interpolate', ['linear'], ['get', 'zmax'], 25, '#06b6d410', 35, '#f59e0b10', 45, '#f9731615', 55, '#ef444418'],
-          'circle-blur': 1.2,
+          'circle-radius': ['interpolate', ['linear'], ['get', 'area'], 16, 20, 500, 30, 2000, 45, 5000, 70],
+          'circle-color': ['interpolate', ['linear'], ['get', 'zmax'], 25, 'rgba(255,255,255,0.02)', 45, 'rgba(255,255,255,0.08)', 55, 'rgba(255,100,100,0.1)'],
+          'circle-blur': 1.5,
+          'circle-pitch-alignment': 'map',
         },
       })
 
-      // Main circle
+      // Sharp Core
       m.addLayer({
         id: 'storms-main', type: 'circle', source: 'storms',
         paint: {
-          'circle-radius': ['interpolate', ['linear'], ['get', 'area'], 16, 5, 500, 9, 2000, 15, 5000, 24],
-          'circle-color': ['interpolate', ['linear'], ['get', 'zmax'], 25, '#06b6d4', 35, '#f59e0b', 45, '#f97316', 55, '#ef4444'],
-          'circle-opacity': 0.85,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': ['interpolate', ['linear'], ['get', 'zmax'], 25, '#06b6d460', 35, '#f59e0b60', 45, '#f9731660', 55, '#ef444460'],
+          'circle-radius': ['interpolate', ['linear'], ['get', 'area'], 16, 4, 500, 8, 2000, 12, 5000, 20],
+          'circle-color': '#ffffff',
+          'circle-opacity': 0.9,
+          'circle-stroke-width': 1,
+          'circle-stroke-color': 'rgba(255,255,255,0.5)',
+          'circle-pitch-alignment': 'map',
         },
       })
 
