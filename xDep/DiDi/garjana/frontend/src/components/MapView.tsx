@@ -46,19 +46,28 @@ export default function MapView({ storms = [], selectedStormId, onSelectStorm }:
     m.on('load', () => {
       m.addSource('storms', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
 
-      // Outer glow ring
+
+      // Storm Heatmap (Radar Contours)
       m.addLayer({
-        id: 'storm-glow', type: 'circle', source: 'storms',
+        id: 'storm-heatmap', type: 'heatmap', source: 'storms',
         paint: {
-          'circle-radius': ['interpolate', ['linear'], ['get', 'area'], 10, 20, 500, 30, 5000, 55],
-          'circle-color': ['interpolate', ['linear'], ['get', 'zmax'],
-            25, 'rgba(59,130,246,0.08)', 35, 'rgba(245,158,11,0.1)', 45, 'rgba(249,115,22,0.12)', 55, 'rgba(239,68,68,0.15)'],
-          'circle-blur': 1.2,
-          'circle-pitch-alignment': 'map',
-        },
-      })
+          'heatmap-weight': ['interpolate', ['linear'], ['get', 'zmax'], 30, 0, 60, 1],
+          'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 3, 1, 14, 3],
+          'heatmap-color': [
+            'interpolate', ['linear'], ['heatmap-density'],
+            0, 'rgba(0,0,0,0)',
+            0.2, 'rgba(59,130,246,0.5)',
+            0.4, 'rgba(245,158,11,0.6)',
+            0.7, 'rgba(249,115,22,0.8)',
+            1, 'rgba(239,68,68,0.9)'
+          ],
+          'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 3, 15, 14, 50],
+          'heatmap-opacity': 0.8
+        }
+      }, 'waterway') # Insert below labels if possible, but MapLibre might not have 'waterway' on carto raster, so just append
 
       // Core marker
+
       m.addLayer({
         id: 'storms-core', type: 'circle', source: 'storms',
         paint: {
@@ -113,19 +122,28 @@ export default function MapView({ storms = [], selectedStormId, onSelectStorm }:
     return () => { m.remove(); map.current = null }
   }, [])
 
-  useEffect(() => {
+useEffect(() => {
     const m = map.current
-    if (!m?.isStyleLoaded()) return
-    const src = m.getSource('storms') as maplibregl.GeoJSONSource
-    if (!src) return
-    src.setData({
-      type: 'FeatureCollection',
-      features: storms.map(s => ({
-        type: 'Feature' as const,
-        geometry: { type: 'Point' as const, coordinates: [s.centroid_lon, s.centroid_lat] },
-        properties: { id: s.storm_id, zmax: s.zmax, area: s.area_km2 },
-      })),
-    })
+    if (!m) return
+    
+    const updateData = () => {
+      const src = m.getSource('storms') as maplibregl.GeoJSONSource
+      if (!src) return
+      src.setData({
+        type: 'FeatureCollection',
+        features: storms.map(s => ({
+          type: 'Feature' as const,
+          geometry: { type: 'Point' as const, coordinates: [s.centroid_lon, s.centroid_lat] },
+          properties: { id: s.storm_id, zmax: s.zmax, area: s.area_km2 },
+        })),
+      })
+    }
+    
+    if (m.isStyleLoaded()) {
+      updateData()
+    } else {
+      m.once('styledata', updateData)
+    }
   }, [storms])
 
   useEffect(() => {
