@@ -26,7 +26,7 @@ export default function MapView({ storms = [], selectedStormId, onSelectStorm }:
         sources: {
           carto: {
             type: 'raster',
-            tiles: ['https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'],
+            tiles: ['https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=cb1_4a82_1_54ed6262c0ce94e01e267b3c'],
             tileSize: 256,
             attribution: '&copy; CARTO',
           },
