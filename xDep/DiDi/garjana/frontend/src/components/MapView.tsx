@@ -1,173 +1,138 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Storm } from '@/lib/api'
 
-interface MapViewProps {
+interface Props {
   storms?: Storm[]
   selectedStormId?: string | null
   onSelectStorm?: (id: string) => void
-  className?: string
 }
 
-export default function MapView({ storms = [], selectedStormId, onSelectStorm, className = '' }: MapViewProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<maplibregl.Map | null>(null)
-  const popupRef = useRef<maplibregl.Popup | null>(null)
+export default function MapView({ storms = [], selectedStormId, onSelectStorm }: Props) {
+  const container = useRef<HTMLDivElement>(null)
+  const map = useRef<maplibregl.Map | null>(null)
+  const popup = useRef<maplibregl.Popup | null>(null)
 
-  // Initialize map
+  const getColor = useCallback((z: number) => z > 55 ? '#ef4444' : z > 45 ? '#f97316' : z > 35 ? '#f59e0b' : '#06b6d4', [])
+
   useEffect(() => {
-    if (mapRef.current || !containerRef.current) return
+    if (map.current || !container.current) return
 
     const m = new maplibregl.Map({
-      container: containerRef.current,
+      container: container.current,
       style: {
         version: 8,
         sources: {
-          esri: {
+          carto: {
             type: 'raster',
-            tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'],
+            tiles: ['https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'],
             tileSize: 256,
-            attribution: '&copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+            attribution: '&copy; CARTO',
           },
         },
-        layers: [
-          {
-            id: 'esri-dark',
-            type: 'raster',
-            source: 'esri',
-            paint: {},
-          },
-        ],
+        layers: [{ id: 'carto', type: 'raster', source: 'carto' }],
       },
-      center: [80.5, 26.7],
-      zoom: 5,
+      center: [80.5, 23],
+      zoom: 4.5,
       minZoom: 3,
-      maxZoom: 12,
+      maxZoom: 14,
+      fadeDuration: 200,
     })
 
-    m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
+    m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
 
     m.on('load', () => {
-      // Add storms source
-      m.addSource('storms', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-      })
+      m.addSource('storms', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
 
-      // Clean, simple storm circles
+      // Glow
       m.addLayer({
-        id: 'storms-fill',
-        type: 'circle',
-        source: 'storms',
+        id: 'storm-glow', type: 'circle', source: 'storms',
         paint: {
-          'circle-radius': ['interpolate', ['linear'], ['get', 'area'], 16, 6, 500, 12, 2000, 20, 5000, 30],
-          'circle-color': [
-            'interpolate', ['linear'], ['get', 'zmax'],
-            25, '#3b82f6', // blue
-            35, '#f59e0b', // amber
-            45, '#f97316', // orange
-            55, '#ef4444', // red
-          ],
-          'circle-opacity': 0.85,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
+          'circle-radius': ['interpolate', ['linear'], ['get', 'area'], 16, 16, 500, 24, 2000, 36, 5000, 50],
+          'circle-color': ['interpolate', ['linear'], ['get', 'zmax'], 25, '#06b6d410', 35, '#f59e0b10', 45, '#f9731615', 55, '#ef444418'],
+          'circle-blur': 1.2,
         },
       })
 
-      // Click handler
-      m.on('click', 'storms-fill', (e) => {
-        if (e.features?.[0]?.properties?.id && onSelectStorm) {
-          onSelectStorm(e.features[0].properties.id)
-        }
+      // Main circle
+      m.addLayer({
+        id: 'storms-main', type: 'circle', source: 'storms',
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['get', 'area'], 16, 5, 500, 9, 2000, 15, 5000, 24],
+          'circle-color': ['interpolate', ['linear'], ['get', 'zmax'], 25, '#06b6d4', 35, '#f59e0b', 45, '#f97316', 55, '#ef4444'],
+          'circle-opacity': 0.85,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': ['interpolate', ['linear'], ['get', 'zmax'], 25, '#06b6d460', 35, '#f59e0b60', 45, '#f9731660', 55, '#ef444460'],
+        },
       })
 
-      // Hover cursor
-      m.on('mouseenter', 'storms-fill', () => { m.getCanvas().style.cursor = 'pointer' })
-      m.on('mouseleave', 'storms-fill', () => {
+      // Click
+      m.on('click', 'storms-main', (e) => {
+        if (e.features?.[0]?.properties?.id && onSelectStorm) onSelectStorm(e.features[0].properties.id)
+      })
+
+      m.on('mouseenter', 'storms-main', () => { m.getCanvas().style.cursor = 'pointer' })
+      m.on('mouseleave', 'storms-main', () => {
         m.getCanvas().style.cursor = ''
-        popupRef.current?.remove()
+        popup.current?.remove()
       })
 
-      // Hover popup with plain English
-      m.on('mousemove', 'storms-fill', (e) => {
+      // Hover popup
+      m.on('mousemove', 'storms-main', (e) => {
         if (!e.features?.[0]) return
         const p = e.features[0].properties!
         const coords = (e.features[0].geometry as any).coordinates
+        const zmax = parseFloat(p.zmax)
+        const severity = zmax > 50 ? 'Severe' : zmax > 40 ? 'Strong' : zmax > 30 ? 'Moderate' : 'Weak'
 
-        if (!popupRef.current) {
-          popupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12 })
-        }
+        if (!popup.current) popup.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 14, maxWidth: '200px' })
 
-        popupRef.current
-          .setLngLat(coords)
-          .setHTML(`
-            <div style="font-family:inherit;font-size:13px;line-height:1.6;">
-              <div style="font-weight:600;margin-bottom:6px;border-bottom:1px solid #334155;padding-bottom:4px;">Storm Cell ${p.id}</div>
-              <div style="display:flex;justify-content:space-between;gap:12px;">
-                <span style="color:#94a3b8">Intensity:</span>
-                <span style="font-weight:500">${parseFloat(p.zmax).toFixed(1)} dBZ</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;gap:12px;">
-                <span style="color:#94a3b8">Size:</span>
-                <span style="font-weight:500">${parseFloat(p.area).toFixed(0)} sq km</span>
-              </div>
+        popup.current.setLngLat(coords).setHTML(`
+          <div style="font-family:Inter,sans-serif">
+            <div style="font-size:13px;font-weight:600;color:#f9fafb;margin-bottom:6px">${severity} Storm Cell</div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="font-size:11px;color:#9ca3af">Intensity</span>
+              <span style="font-size:11px;font-weight:600;color:${p.zmax > 45 ? '#f97316' : '#f59e0b'}">${zmax.toFixed(1)} dBZ</span>
             </div>
-          `)
-          .addTo(m)
+            <div style="display:flex;justify-content:space-between">
+              <span style="font-size:11px;color:#9ca3af">Area</span>
+              <span style="font-size:11px;color:#f9fafb">${parseFloat(p.area).toFixed(0)} km²</span>
+            </div>
+          </div>
+        `).addTo(m)
       })
     })
 
-    mapRef.current = m
+    map.current = m
+    return () => { m.remove(); map.current = null }
+  }, []) // eslint-disable-line
 
-    return () => {
-      m.remove()
-      mapRef.current = null
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Update storm data
+  // Update data
   useEffect(() => {
-    const m = mapRef.current
-    if (!m || !m.isStyleLoaded()) return
-
+    const m = map.current
+    if (!m?.isStyleLoaded()) return
     const src = m.getSource('storms') as maplibregl.GeoJSONSource
     if (!src) return
 
-    const features = storms.map(s => ({
-      type: 'Feature' as const,
-      geometry: {
-        type: 'Point' as const,
-        coordinates: [s.centroid_lon, s.centroid_lat],
-      },
-      properties: {
-        id: s.storm_id,
-        zmax: s.zmax,
-        area: s.area_km2,
-      },
-    }))
-
-    src.setData({ type: 'FeatureCollection', features })
-  }, [storms, selectedStormId])
-
-  // Fly to selected storm
-  useEffect(() => {
-    if (!selectedStormId || !mapRef.current) return
-    const storm = storms.find(s => s.storm_id === selectedStormId)
-    if (!storm) return
-
-    mapRef.current.flyTo({
-      center: [storm.centroid_lon, storm.centroid_lat],
-      zoom: 8,
-      duration: 1000,
+    src.setData({
+      type: 'FeatureCollection',
+      features: storms.map(s => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [s.centroid_lon, s.centroid_lat] },
+        properties: { id: s.storm_id, zmax: s.zmax, area: s.area_km2 },
+      })),
     })
+  }, [storms])
+
+  // Fly to selected
+  useEffect(() => {
+    if (!selectedStormId || !map.current) return
+    const s = storms.find(x => x.storm_id === selectedStormId)
+    if (s) map.current.flyTo({ center: [s.centroid_lon, s.centroid_lat], zoom: 7.5, duration: 1000 })
   }, [selectedStormId, storms])
 
-  return (
-    <div className={"relative w-full h-full bg-g-bg overflow-hidden " + className}>
-      <div ref={containerRef} className="absolute inset-0 w-full h-full" />
-    </div>
-  )
+  return <div ref={container} className="w-full h-full" />
 }
