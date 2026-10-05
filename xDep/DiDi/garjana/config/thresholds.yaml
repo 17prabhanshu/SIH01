@@ -16,8 +16,8 @@ hazard_thresholds:
 
   extreme_rain_rate:
     # "Cloudburst-type" extreme rate - NEVER call it "cloudburst forecast" (R4)
-    rate_mm_per_hour: 100.0
-    min_area_km2: 20.0
+    rate_mm_per_hour: 75.0
+    min_area_km2: 8.0
     validation_tier: "experimental"
 
   hail:

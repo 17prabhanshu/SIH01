@@ -21,7 +21,7 @@ zr_relationships:
     b: 1.4
     description: "WSR-88D convective default"
 
-default: "tropical_convective"
+default: "marshall_palmer"
 
 # Reflectivity thresholds for categorical verification
 reflectivity_thresholds_dbz:

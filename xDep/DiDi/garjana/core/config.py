@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 import yaml
 
-_CONFIG_DIR = Path(__file__).parent.parent.parent / "config"
+_CONFIG_DIR = Path(__file__).parent.parent / "config"
 
 
 def _resolve_config_dir() -> Path:
