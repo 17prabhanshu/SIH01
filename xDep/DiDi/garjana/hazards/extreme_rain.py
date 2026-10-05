@@ -26,6 +26,20 @@ def compute_extreme_rain_risk(
 
     R4: Always tier=experimental. Never say "cloudburst forecast".
     """
+    # STRICT METEOROLOGICAL CALIBRATION (SIH Mandate)
+    # Do NOT issue extreme rainfall warnings for < 48 dBZ
+    if max_dbz < 48.0:
+        return HazardValue(
+            hazard="extreme_rain",
+            value=0.0,
+            unit="probability",
+            validation_tier=ValidationTier.EXPERIMENTAL,
+            method_version="v2.0_sih_strict",
+            oi_summary=oi_summary,
+            lead_min=lead_min,
+            storm_id=storm_id,
+        )
+
     try:
         cfg = Config.get("thresholds")
         er_cfg = cfg.get("hazard_thresholds", {}).get("extreme_rain_rate", {})

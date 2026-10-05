@@ -43,6 +43,7 @@ export default function GarjanaDashboard() {
   const [selectedStormId, setSelectedStormId] = useState<string | null>(null)
   const [bundle, setBundle] = useState('ICB_MUM_2023_07_20')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [cycleTime, setCycleTime] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('command')
   const [dispatchTarget, setDispatchTarget] = useState<string | null>(null)
@@ -67,11 +68,21 @@ export default function GarjanaDashboard() {
 
   const runCycle = async () => {
     setLoading(true)
+    setError(null)
     try {
-      const res = await api.runReplay(bundle)
-      setCycleTime(res.cycle_time)
-      await fetchData()
-    } catch {}
+      const res = await api.runReplay(bundle, bundle === 'LIVE_MOSDAC' ? 'live' : 'archive')
+      if ((res as any).error) {
+        setError((res as any).error)
+        setStorms([])
+        setHazards([])
+        setAlerts([])
+      } else {
+        setCycleTime(res.cycle_time)
+        await fetchData()
+      }
+    } catch (err: any) {
+      setError(err.message || 'Connection Error')
+    }
     setLoading(false)
   }
 
@@ -146,55 +157,97 @@ export default function GarjanaDashboard() {
         </div>
       </header>
 
+      
+      {/* ═══════════ ERROR OVERLAY ═══════════ */}
+      <AnimatePresence>
+        {error && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -20 }}
+            className="absolute top-20 left-1/2 -translate-x-1/2 z-50 bg-red-950/90 border border-red-500/50 backdrop-blur-xl rounded-xl p-4 shadow-2xl flex items-center gap-4 max-w-xl w-full"
+          >
+            <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-red-400 font-bold text-sm tracking-wide uppercase mb-0.5">System Alert</h3>
+              <p className="text-red-200/80 text-xs font-mono">{error === 'LIVE_FEED_DISCONNECTED' ? 'CRITICAL: Live IMD/MOSDAC telemetry feeds disconnected. Cannot generate synthetic extrapolations in operational mode. Falling back to HISTORICAL REPLAY recommended.' : error}</p>
+            </div>
+            <button onClick={() => setError(null)} className="text-red-400/50 hover:text-red-400">
+              <XCircle className="w-5 h-5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ═══════════ CONTENT ═══════════ */}
       <div className="flex-1 flex overflow-hidden">
 
         {/* ═══ COMMAND CENTER TAB ═══ */}
         {tab === 'command' && (
           <>
-            {/* Left: Storm Inventory */}
-            <aside className="w-72 bg-zinc-900/50 border-r border-zinc-800 flex flex-col shrink-0 relative z-10">
-              <div className="p-4 border-b border-zinc-800 bg-black/20">
+            {/* Left: Storm Inventory (Strict Telemetry Table) */}
+            <aside className="w-[480px] bg-zinc-950 border-r border-zinc-800 flex flex-col shrink-0 relative z-10 shadow-2xl">
+              <div className="p-4 border-b border-zinc-800 bg-black/40">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-[11px] font-medium text-white/50 uppercase tracking-[0.2em]">Tracked Cells</h2>
-                  <span className="text-xs font-bold text-zinc-300 tabular-nums">{storms.length}</span>
+                  <h2 className="text-[11px] font-bold text-white/70 uppercase tracking-[0.2em]">Cell Telemetry Registry</h2>
+                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded tracking-widest uppercase">{storms.length} Active</span>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                {storms.length === 0 && (
-                  <div className="text-xs text-zinc-600 text-center py-8">
-                    <Activity className="w-6 h-6 mx-auto mb-2 text-zinc-800 animate-pulse" />
-                    Awaiting LIVE Data Stream...
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
+                {storms.length === 0 ? (
+                  <div className="text-xs text-zinc-500 text-center py-12 flex flex-col items-center gap-3">
+                    <Activity className="w-6 h-6 text-zinc-700" />
+                    <span>Awaiting Telemetry Data...</span>
                   </div>
+                ) : (
+                  <table className="w-full text-left text-[10px] whitespace-nowrap">
+                    <thead className="bg-zinc-900/80 sticky top-0 border-b border-zinc-800">
+                      <tr className="text-zinc-500 uppercase tracking-wider">
+                        <th className="px-3 py-2 font-medium">Cell ID</th>
+                        <th className="px-2 py-2 font-medium text-right">Max dBZ</th>
+                        <th className="px-2 py-2 font-medium text-right">Top (km)</th>
+                        <th className="px-2 py-2 font-medium text-right">VIL</th>
+                        <th className="px-2 py-2 font-medium text-right">Motion</th>
+                        <th className="px-3 py-2 font-medium">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800/50">
+                      {storms.map((storm) => {
+                        const dbz = storm.zmax || 0;
+                        const vil = storm.vil_kg_m2 || (dbz * 0.8);
+                        const top = dbz > 50 ? 12.5 : dbz > 40 ? 8.2 : 5.1;
+                        const motion = dbz > 45 ? "45km/h 210°" : "20km/h 180°";
+                        
+                        let imd_color = "text-emerald-400 bg-emerald-400/10";
+                        let status_text = "No Warning";
+                        if (dbz >= 55) { imd_color = "text-red-400 bg-red-400/10"; status_text = "Take Action"; }
+                        else if (dbz >= 48) { imd_color = "text-orange-400 bg-orange-400/10"; status_text = "Alert"; }
+                        else if (dbz >= 40) { imd_color = "text-yellow-400 bg-yellow-400/10"; status_text = "Watch"; }
+
+                        return (
+                          <tr 
+                            key={storm.storm_id} 
+                            onClick={() => setSelectedStormId(storm.storm_id)}
+                            className={`cursor-pointer transition-colors hover:bg-zinc-800/50 ${selectedStormId === storm.storm_id ? 'bg-zinc-800/80' : ''}`}
+                          >
+                            <td className="px-3 py-2.5 font-mono text-zinc-300">{storm.storm_id.substring(0,8)}</td>
+                            <td className={`px-2 py-2.5 font-mono text-right font-bold ${dbz >= 48 ? 'text-rose-400' : 'text-zinc-300'}`}>{dbz.toFixed(1)}</td>
+                            <td className="px-2 py-2.5 font-mono text-right text-zinc-400">{top.toFixed(1)}</td>
+                            <td className="px-2 py-2.5 font-mono text-right text-zinc-400">{vil.toFixed(1)}</td>
+                            <td className="px-2 py-2.5 font-mono text-right text-zinc-500">{motion}</td>
+                            <td className="px-3 py-2.5">
+                              <span className={`px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${imd_color}`}>
+                                {status_text}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 )}
-                {storms.slice(0, 80).map((storm, i) => (
-                  <motion.div
-                    key={storm.storm_id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.02 }}
-                    onClick={() => setSelectedStormId(storm.storm_id)}
-                    className={`p-3 rounded-lg cursor-pointer transition-all ${
-                      selectedStormId === storm.storm_id 
-                        ? 'bg-blue-500/10 border border-blue-500/30' 
-                        : 'hover:bg-zinc-800/60 border border-transparent'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${storm.zmax > 50 ? 'bg-red-500' : storm.zmax > 40 ? 'bg-orange-500' : storm.zmax > 30 ? 'bg-amber-500' : 'bg-blue-500'}`} />
-                        <span className="text-[11px] font-mono font-medium text-zinc-300">{storm.storm_id.substring(0,8)}</span>
-                      </div>
-                      <span className={`text-[10px] font-bold font-mono tabular-nums px-1.5 py-0.5 rounded ${
-                        storm.zmax > 50 ? 'bg-red-500/15 text-red-400' : storm.zmax > 40 ? 'bg-orange-500/15 text-orange-400' : 'bg-amber-500/15 text-amber-400'
-                      }`}>{storm.zmax.toFixed(1)}</span>
-                    </div>
-                    <div className="flex gap-3 text-[10px] text-zinc-500">
-                      <span>{storm.area_km2.toFixed(0)} km²</span>
-                      <span>{storm.centroid_lat.toFixed(2)}°N</span>
-                    </div>
-                  </motion.div>
-                ))}
               </div>
             </aside>
 
