@@ -30,10 +30,13 @@ body {
 }
 
 /* MapLibre */
+.maplibregl-canvas {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(1.05) grayscale(0.2);
+}
 .maplibregl-ctrl-bottom-right,
 .maplibregl-ctrl-attrib { display: none !important; }
 .maplibregl-popup-content {
-  background: rgba(24,24,27,0.95) !important;
+  background: rgba(9, 9, 11, 0.95) !important;
   backdrop-filter: blur(12px) !important;
   border: 1px solid rgba(63,63,70,0.6) !important;
   border-radius: 12px !important;

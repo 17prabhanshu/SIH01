@@ -58,6 +58,9 @@ export default function GarjanaDashboard() {
 
   useEffect(() => {
     fetchData()
+    // Auto-sync once on mount to populate live data instantly
+    runCycle()
+    
     const int = setInterval(fetchData, 8000)
     return () => clearInterval(int)
   }, [fetchData])
@@ -118,24 +121,25 @@ export default function GarjanaDashboard() {
         <div className="flex items-center gap-4">
           <select 
             value={bundle} onChange={e => setBundle(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 text-xs rounded-md px-2.5 py-1.5 text-zinc-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="bg-zinc-800 border border-zinc-700 text-xs rounded-md px-2.5 py-1.5 text-zinc-300 focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
           >
-            <option value="ICB_MUM_2023_07_20">Mumbai Cloudburst — 20 Jul 2023</option>
-            <option value="ICB_DEL_2024_05_10">Delhi Squall — 10 May 2024</option>
+            <option value="LIVE_MOSDAC">Live: MOSDAC / GEE Stream</option>
+            <option value="ICB_MUM_2023_07_20">Historical: Mumbai Cloudburst</option>
+            <option value="ICB_DEL_2024_05_10">Historical: Delhi Squall</option>
           </select>
           <button 
             onClick={runCycle} disabled={loading}
-            className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-4 py-1.5 rounded-md transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-4 py-1.5 rounded-md transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-blue-500/20"
           >
-            {loading ? <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing...</> : <><Activity className="w-3.5 h-3.5" /> Run Forecast Cycle</>}
+            {loading ? <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing...</> : <><Activity className="w-3.5 h-3.5" /> Sync Live Data</>}
           </button>
           
           <div className="h-5 w-px bg-zinc-800" />
           
           <div className="flex items-center gap-3 text-xs">
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-zinc-400">System Online</span>
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+              <span className="text-emerald-400 font-bold tracking-widest uppercase text-[10px]">System Active</span>
             </div>
             <div className="text-zinc-600 font-mono tabular-nums">{cycleTime ? new Date(cycleTime).toLocaleTimeString() : '--:--:--'}</div>
           </div>
@@ -149,16 +153,19 @@ export default function GarjanaDashboard() {
         {tab === 'command' && (
           <>
             {/* Left: Storm Inventory */}
-            <aside className="w-72 bg-zinc-900/50 border-r border-zinc-800 flex flex-col shrink-0">
-              <div className="p-4 border-b border-zinc-800">
+            <aside className="w-72 bg-zinc-900/50 border-r border-zinc-800 flex flex-col shrink-0 relative z-10">
+              <div className="p-4 border-b border-zinc-800 bg-black/20">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Tracked Cells</h2>
+                  <h2 className="text-[11px] font-medium text-white/50 uppercase tracking-[0.2em]">Tracked Cells</h2>
                   <span className="text-xs font-bold text-zinc-300 tabular-nums">{storms.length}</span>
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto p-2 space-y-1">
                 {storms.length === 0 && (
-                  <div className="text-xs text-zinc-600 text-center py-8">Run a forecast cycle to detect storm cells</div>
+                  <div className="text-xs text-zinc-600 text-center py-8">
+                    <Activity className="w-6 h-6 mx-auto mb-2 text-zinc-800 animate-pulse" />
+                    Awaiting LIVE Data Stream...
+                  </div>
                 )}
                 {storms.slice(0, 80).map((storm, i) => (
                   <motion.div
