@@ -1,181 +1,208 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { api, type Storm, type Hazard, type Alert } from '@/lib/api'
 import MapView from '@/components/MapView'
 
-const SKILLS = [
-  'tailwind-cinematic', 'nextjs-14-app-router', 'shadcn-ui-custom', 'react-hooks-perf',
-  'animejs-choreography', 'frontend-observability', 'playwright-skill', 'cinematic-ui',
-  'maplibre-gl', 'postgis-spatial', 'geo-json-perf', 'fastapi-advanced', 'websocket-resilience',
-  'celery-redis-workers', 'pytest-asyncio', 'python-xarray', 'pysteps-nowcasting',
-  'numpy-vectorization', 'radar-data-qc', 'satellite-insat', 'weather-alerting-logic',
-  'ai-dataset-generator', 'understand-anything', 'docker-compose-prod', 'github-actions-ci',
-  'prometheus-grafana', 'aws-s3-boto3', 'incident-dispatch', 'system-architecture-docs',
-  'agentic-awesome-skills'
-]
-
-const AGENTS = ['FusionOrchestrator', 'StormTracker', 'ExposureAnalyzer', 'AlertDispatcher', 'GeospatialAgent', 'TelemetryMonitor']
-
-export default function CinematicAgenticSpace() {
+export default function ProfessionalDashboard() {
   const [storms, setStorms] = useState<Storm[]>([])
   const [hazards, setHazards] = useState<Hazard[]>([])
   const [alerts, setAlerts] = useState<Alert[]>([])
-  const [agentLogs, setAgentLogs] = useState<{ id: number, agent: string, skill: string, msg: string, time: string }[]>([])
-  const [activeSkills, setActiveSkills] = useState<Set<string>>(new Set())
-  const logCounter = useRef(0)
+  const [bundle, setBundle] = useState<string>('ICB_MUM_2023_07_20')
+  const [loading, setLoading] = useState(false)
+  const [selectedStormId, setSelectedStormId] = useState<string | null>(null)
+
+  const fetchData = async () => {
+    try {
+      const [s, hz, al] = await Promise.all([api.storms(), api.hazards(), api.alerts()])
+      setStorms(s.storms)
+      setHazards(hz.hazards)
+      setAlerts(al.alerts)
+    } catch {}
+  }
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [s, hz, al] = await Promise.all([api.storms(), api.hazards(), api.alerts()])
-        setStorms(s.storms)
-        setHazards(hz.hazards)
-        setAlerts(al.alerts)
-      } catch {}
-    }
     fetchData()
     const int = setInterval(fetchData, 10000)
     return () => clearInterval(int)
   }, [])
 
-  useEffect(() => {
-    if (storms.length === 0) return
-    const generateLog = () => {
-      const agent = AGENTS[Math.floor(Math.random() * AGENTS.length)]
-      const skill = SKILLS[Math.floor(Math.random() * SKILLS.length)]
-      const storm = storms[Math.floor(Math.random() * storms.length)]
-      
-      const msg = agent === 'StormTracker' ? `Isolating deep convection at [${storm.centroid_lat.toFixed(2)}, ${storm.centroid_lon.toFixed(2)}]` :
-                  agent === 'FusionOrchestrator' ? `Fusing Z-R matrix across ${storm.area_km2.toFixed(0)}km² volume` :
-                  agent === 'AlertDispatcher' ? `Synthesizing geospatial boundary for critical payload` :
-                  `Optimizing tensor flows for predictive extrapolation`
-
-      const timeStr = new Date().toISOString().substring(11, 23)
-      setAgentLogs(prev => [...prev.slice(-14), { id: logCounter.current++, agent, skill, msg, time: timeStr }])
-      
-      setActiveSkills(prev => {
-        const next = new Set(prev)
-        next.add(skill)
-        if (next.size > 10) next.delete(Array.from(next)[0])
-        return next
-      })
-    }
-    const int = setInterval(generateLog, 800)
-    return () => clearInterval(int)
-  }, [storms])
+  const runReplay = async () => {
+    setLoading(true)
+    try {
+      await api.runReplay(bundle)
+      await fetchData()
+    } catch {}
+    setLoading(false)
+  }
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-black">
-      {/* 3D Auto-Rotating Cinematic Background Map */}
-      <div className="absolute inset-0 z-0">
-        <MapView storms={storms} />
-      </div>
+    <div className="h-screen flex flex-col bg-slate-50 text-slate-900 font-sans">
       
-      {/* Ambient Spline-style glow */}
-      <div className="ambient-glow" />
-      <div className="map-vignette" />
-
-      {/* Top Title Bar (Manus / Apple Vision Pro aesthetic) */}
-      <div className="absolute top-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center spatial-panel stagger-1 px-8 py-3">
-        <h1 className="text-xl font-bold tracking-[0.3em] text-white uppercase text-shimmer">
-          Garjana Orchestrator
-        </h1>
-        <div className="text-[9px] tracking-widest text-gray-400 mt-1 uppercase font-mono">
-          MoES / PS 26084 // Autonomous Agent Network
+      {/* HEADER */}
+      <header className="h-16 flex items-center justify-between px-6 bg-white border-b border-slate-200 shadow-sm z-20">
+        <div className="flex items-center gap-4">
+          <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center text-white font-bold">G</div>
+          <div>
+            <h1 className="text-lg font-bold leading-tight">Garjana Convective Nowcasting</h1>
+            <div className="text-xs text-slate-500 font-medium">Ministry of Earth Sciences • PS-26084</div>
+          </div>
         </div>
-      </div>
 
-      {/* LEFT: Live Agent Terminal */}
-      <div className="absolute top-8 bottom-8 left-8 w-[380px] z-20 flex flex-col gap-6">
-        
-        {/* Terminal Panel */}
-        <div className="flex-1 spatial-panel stagger-2 p-5 flex flex-col overflow-hidden">
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-[10px] tracking-widest text-white/50 uppercase">Network Telemetry</span>
-            <div className="flex gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <div className="w-2 h-2 rounded-full bg-amber-500" />
-              <div className="w-2 h-2 rounded-full bg-green-500" />
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-slate-600">Dataset:</span>
+            <select 
+              value={bundle} 
+              onChange={e => setBundle(e.target.value)}
+              className="bg-slate-100 border border-slate-200 text-sm rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ICB_MUM_2023_07_20">Mumbai Cloudburst (20 Jul 2023)</option>
+              <option value="ICB_DEL_2024_05_10">Delhi Squall (10 May 2024)</option>
+            </select>
+            <button 
+              onClick={runReplay}
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-1.5 rounded-md transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Processing...' : 'Run Cycle'}
+            </button>
+          </div>
+          
+          <div className="h-6 w-px bg-slate-200" />
+          
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+              <span className="text-xs font-medium text-slate-600">Radar Online</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+              <span className="text-xs font-medium text-slate-600">INSAT Online</span>
             </div>
           </div>
-          <div className="flex-1 overflow-y-hidden flex flex-col justify-end gap-2 font-mono text-[9px] relative">
-            {agentLogs.map((log, i) => (
-              <div key={log.id} className="animate-[float-up_0.3s_ease-out] border-l border-white/20 pl-3 py-1">
-                <div className="text-white/40 mb-0.5">{log.time}</div>
-                <div className="text-white font-bold mb-0.5">[{log.agent}]</div>
-                <div className="text-white/80">{log.msg}</div>
-                <div className="text-[#00f0ff]/60 mt-0.5">→ Skill: {log.skill}</div>
-              </div>
-            ))}
-            <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-[rgba(10,10,10,0.8)] to-transparent" />
-          </div>
         </div>
+      </header>
 
-        {/* 21st.dev style Border Beam Card for Active Skills */}
-        <div className="h-48 border-beam-card stagger-3 p-5 flex flex-col">
-          <div className="text-[10px] tracking-widest text-white/50 uppercase mb-3">Skill Execution Matrix</div>
-          <div className="flex flex-wrap gap-2 overflow-y-auto no-scrollbar">
-            {SKILLS.slice(0, 15).map(skill => (
-              <span key={skill} className={`text-[8px] font-mono px-2 py-1 rounded-full transition-all duration-500 ${
-                activeSkills.has(skill) 
-                  ? 'bg-white text-black font-bold shadow-[0_0_15px_rgba(255,255,255,0.6)] scale-105' 
-                  : 'bg-white/5 text-white/40 border border-white/10'
-              }`}>
-                {skill}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* RIGHT: Inference & Analytics */}
-      <div className="absolute top-8 bottom-8 right-8 w-[340px] z-20 flex flex-col gap-6">
+      {/* MAIN CONTENT */}
+      <div className="flex-1 flex overflow-hidden">
         
-        {/* Core Stats */}
-        <div className="spatial-panel stagger-2 p-5 grid grid-cols-2 gap-4">
-          <div>
-            <div className="text-[10px] tracking-widest text-white/50 uppercase mb-1">Active Cells</div>
-            <div className="text-3xl font-bold text-white tabular-nums">{storms.length}</div>
+        {/* LEFT PANEL: Storm Cells */}
+        <aside className="w-80 bg-white border-r border-slate-200 flex flex-col z-10 shadow-sm">
+          <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+            <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Tracked Convective Cells</h2>
+            <div className="text-xs text-slate-500 mt-0.5">{storms.length} active anomalies detected</div>
           </div>
-          <div>
-            <div className="text-[10px] tracking-widest text-white/50 uppercase mb-1">Pending Alerts</div>
-            <div className="text-3xl font-bold text-red-500 tabular-nums">{alerts.filter(a => a.status === 'draft').length}</div>
-          </div>
-        </div>
-
-        {/* Hazard Pipeline */}
-        <div className="flex-1 spatial-panel stagger-3 p-5 overflow-hidden flex flex-col">
-          <div className="text-[10px] tracking-widest text-white/50 uppercase mb-4">Inference Pipeline</div>
-          <div className="space-y-4 flex-1 overflow-y-auto no-scrollbar">
-            {hazards.map(h => (
-              <div key={h.hazard}>
-                <div className="flex justify-between text-[11px] mb-1.5">
-                  <span className="text-white capitalize font-medium">{h.hazard.replace('_', ' ')}</span>
-                  <span className="text-white/60 font-mono">{(h.value * 100).toFixed(1)}%</span>
+          <div className="flex-1 overflow-y-auto p-2">
+            {storms.slice(0, 50).map(storm => (
+              <div 
+                key={storm.storm_id} 
+                onClick={() => setSelectedStormId(storm.storm_id)}
+                className={`p-3 mb-2 rounded-lg border cursor-pointer transition-colors ${
+                  selectedStormId === storm.storm_id 
+                    ? 'border-blue-500 bg-blue-50' 
+                    : 'border-slate-100 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-xs font-mono font-medium text-slate-700">Cell {storm.storm_id.substring(0,6)}</span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                    storm.zmax > 50 ? 'bg-red-100 text-red-700' :
+                    storm.zmax > 40 ? 'bg-orange-100 text-orange-700' :
+                    'bg-yellow-100 text-yellow-700'
+                  }`}>
+                    {storm.zmax.toFixed(1)} dBZ
+                  </span>
                 </div>
-                <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-white transition-all duration-1000 shadow-[0_0_10px_rgba(255,255,255,0.8)]" 
-                    style={{ width: `${Math.max(5, h.value * 100)}%` }} 
-                  />
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>Area: {storm.area_km2.toFixed(0)} km²</span>
+                  <span>VIL: {storm.vil_kg_m2.toFixed(1)} kg/m²</span>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </aside>
 
-        {/* Advert: 21st.dev style Glowing Button */}
-        <div className="spatial-panel stagger-4 p-5 flex flex-col items-center justify-center text-center group cursor-pointer relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <h3 className="text-sm font-bold text-white mb-2">Deploy Enterprise API</h3>
-          <p className="text-[10px] text-white/50 mb-4 leading-relaxed">
-            Gain full access to the 1ms latency predictive weather firehose for your logistics routing network.
-          </p>
-          <button className="bg-white text-black px-6 py-2 rounded-full text-[10px] font-bold tracking-widest uppercase transition-transform group-hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.4)]">
-            Initialize Access
-          </button>
-        </div>
+        {/* CENTER PANEL: Map & Timeline */}
+        <main className="flex-1 relative bg-slate-100 flex flex-col">
+          <div className="flex-1 relative">
+            <MapView storms={storms} selectedStormId={selectedStormId} onSelectStorm={setSelectedStormId} />
+          </div>
+          
+          {/* Timeline Scrubber */}
+          <div className="h-16 bg-white border-t border-slate-200 flex items-center px-6 gap-6">
+            <span className="text-sm font-semibold text-slate-700 w-24">Nowcast</span>
+            <div className="flex-1 h-2 bg-slate-100 rounded-full relative">
+              <div className="absolute left-0 top-0 bottom-0 w-1/3 bg-slate-300 rounded-l-full" />
+              <div className="absolute left-1/3 top-1/2 -translate-y-1/2 w-4 h-4 bg-blue-600 rounded-full shadow border-2 border-white" />
+            </div>
+            <div className="flex text-xs font-medium text-slate-500 gap-8">
+              <span>T-60m</span>
+              <span className="text-blue-600 font-bold">Now</span>
+              <span>T+120m</span>
+            </div>
+          </div>
+        </main>
+
+        {/* RIGHT PANEL: Inference & Alerts */}
+        <aside className="w-96 bg-white border-l border-slate-200 flex flex-col z-10 shadow-sm overflow-y-auto">
+          
+          {/* Hazards Section */}
+          <div className="p-5 border-b border-slate-100">
+            <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-4">Hazard Inference Pipeline</h2>
+            <div className="space-y-4">
+              {hazards.length === 0 && <div className="text-sm text-slate-500">Run a cycle to generate inferences.</div>}
+              {hazards.map(h => (
+                <div key={h.hazard}>
+                  <div className="flex justify-between items-end mb-1.5">
+                    <span className="text-sm font-medium text-slate-700 capitalize">{h.hazard.replace('_', ' ')}</span>
+                    <span className="text-xs font-bold text-slate-600">{(h.value * 100).toFixed(0)}% Prob.</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full ${h.value > 0.6 ? 'bg-red-500' : h.value > 0.3 ? 'bg-orange-500' : 'bg-blue-500'}`}
+                      style={{ width: `${Math.max(2, h.value * 100)}%` }} 
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Alerts Section */}
+          <div className="p-5 flex-1 bg-slate-50/50">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Active Warnings</h2>
+              <span className="text-xs font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">{alerts.length}</span>
+            </div>
+            
+            <div className="space-y-3">
+              {alerts.length === 0 && <div className="text-sm text-slate-500">No active warnings.</div>}
+              {alerts.map(alert => (
+                <div key={alert.alert_id} className="bg-white border border-red-200 rounded-lg p-4 shadow-sm">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-xs font-bold text-red-700 uppercase tracking-wider bg-red-50 px-2 py-1 rounded">
+                      {alert.severity} WARNING
+                    </span>
+                    <span className="text-xs text-slate-500">{new Date(alert.timestamp).toLocaleTimeString()}</span>
+                  </div>
+                  <p className="text-sm font-semibold text-slate-800 mb-1">{alert.hazard_type.toUpperCase()}</p>
+                  <p className="text-xs text-slate-600 mb-3">{alert.description}</p>
+                  
+                  <div className="flex gap-2">
+                    <button className="flex-1 bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium py-1.5 rounded transition-colors">
+                      Dispatch NDRF
+                    </button>
+                    <button className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium py-1.5 rounded transition-colors border border-slate-200">
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+        </aside>
 
       </div>
     </div>

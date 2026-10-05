@@ -2,120 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg: #000000;
-  --accent: #ffffff;
-  --glow: rgba(255, 255, 255, 0.15);
+  --background: #f8fafc;
+  --foreground: #0f172a;
 }
 
 body {
-  background-color: var(--bg);
-  color: #ededed;
+  background-color: var(--background);
+  color: var(--foreground);
   font-family: 'Inter', sans-serif;
   overflow: hidden;
-  perspective: 1000px;
 }
 
 /* MapLibre hides */
-.maplibregl-ctrl-bottom-right, .maplibregl-ctrl-attrib { display: none !important; }
+.maplibregl-ctrl-bottom-right { display: none !important; }
 
-::-webkit-scrollbar { display: none; }
-
-/* =========================================
-   21st.dev / Spline / Cinematic Effects
-   ========================================= */
-
-/* 1. Spline-like Ambient Background Glow */
-.ambient-glow {
-  position: absolute;
-  top: 50%; left: 50%;
-  width: 120vw; height: 120vh;
-  transform: translate(-50%, -50%);
-  background: radial-gradient(circle at center, rgba(30,50,100,0.15) 0%, rgba(0,0,0,0) 60%);
-  pointer-events: none;
-  z-index: 0;
-  animation: pulse-glow 8s ease-in-out infinite alternate;
+/* Clean Popup */
+.maplibregl-popup-content {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1) !important;
+  color: #0f172a !important;
+  padding: 12px !important;
+  font-family: 'Inter', sans-serif !important;
 }
 
-@keyframes pulse-glow {
-  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
-  100% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
-}
-
-/* 2. Border Beam (21st.dev style) */
-.border-beam-card {
-  position: relative;
-  background: rgba(10, 10, 10, 0.6);
-  backdrop-filter: blur(24px);
-  border-radius: 20px;
-  border: 1px solid rgba(255,255,255,0.05);
-  box-shadow: 0 30px 60px rgba(0,0,0,0.5);
-  overflow: hidden;
-}
-.border-beam-card::before {
-  content: "";
-  position: absolute;
-  inset: -2px;
-  border-radius: 22px;
-  padding: 2px;
-  background: conic-gradient(from 90deg at 50% 50%, rgba(0,0,0,0) 50%, rgba(255,255,255,0.8) 100%);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: spin 4s linear infinite;
-  pointer-events: none;
-}
-
-@keyframes spin {
-  100% { transform: rotate(360deg); }
-}
-
-/* 3. Text Shimmer (Manus aesthetic) */
-.text-shimmer {
-  display: inline-block;
-  color: rgba(255,255,255,0.3);
-  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, #fff 50%, rgba(255,255,255,0) 100%);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  animation: shimmer 3s infinite;
-}
-
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-/* 4. Glass Morphism Spatial Panels */
-.spatial-panel {
-  background: linear-gradient(135deg, rgba(20,20,20,0.7) 0%, rgba(5,5,5,0.8) 100%);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-top: 1px solid rgba(255,255,255,0.15);
-  border-radius: 24px;
-  box-shadow: 0 40px 80px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1);
-  animation: float-up 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  opacity: 0;
-  transform: translateY(40px);
-}
-
-@keyframes float-up {
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.stagger-1 { animation-delay: 0.1s; }
-.stagger-2 { animation-delay: 0.2s; }
-.stagger-3 { animation-delay: 0.3s; }
-.stagger-4 { animation-delay: 0.4s; }
-
-/* 5. 3D Map Masking / Fade to black edges */
-.map-vignette {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(circle, transparent 40%, #000 100%);
-  z-index: 10;
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
