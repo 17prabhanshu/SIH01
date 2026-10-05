@@ -244,6 +244,22 @@ export default function Dashboard() {
                   ))}
                 </div>
               </div>
+              
+              {/* Promotional Advert */}
+              <div className="m-4 mt-auto p-4 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700/50 relative overflow-hidden group cursor-pointer">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-500" />
+                <div className="relative z-10">
+                  <div className="text-[10px] font-bold tracking-widest text-orange-400 uppercase mb-1">New Release</div>
+                  <div className="text-sm font-semibold text-white mb-1.5">Garjana Enterprise API</div>
+                  <p className="text-[11px] text-gray-400 mb-3 leading-relaxed">
+                    Get the 1ms latency weather firehose for aviation, logistics, and automated dispatch routing.
+                  </p>
+                  <div className="flex items-center text-xs font-medium text-orange-400 group-hover:text-orange-300 transition-colors">
+                    View Documentation <span className="ml-1 transition-transform group-hover:translate-x-1">→</span>
+                  </div>
+                </div>
+              </div>
+
             </aside>
           </>
         )}
