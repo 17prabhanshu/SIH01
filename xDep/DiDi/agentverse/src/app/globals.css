@@ -1,0 +1,264 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-heading: var(--font-heading);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  /* Artistic Premium Palette */
+  --color-background: #F2EFE9;
+  --color-foreground: #0D0D0D;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #0D0D0D;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #0D0D0D;
+  --color-primary: #FF4500;
+  --color-primary-foreground: #F2EFE9;
+  --color-secondary: #E3DED5;
+  --color-secondary-foreground: #0D0D0D;
+  --color-muted: #E3DED5;
+  --color-muted-foreground: #737373;
+  --color-accent: #D1F82B;
+  --color-accent-foreground: #0D0D0D;
+  --color-destructive: #FF3333;
+  --color-destructive-foreground: #F2EFE9;
+  --color-border: #D9D4C7;
+  --color-input: #D9D4C7;
+  --color-ring: #FF4500;
+  
+  --radius-sm: 0.5rem;
+  --radius-md: 1rem;
+  --radius-lg: 2rem;
+  --radius-xl: 3rem;
+  --radius-2xl: 4rem;
+}
+
+@layer base {
+  :root {
+    --background: #F2EFE9;
+    --foreground: #0D0D0D;
+  }
+
+  .dark {
+    --background: #0A0A0A;
+    --foreground: #F2EFE9;
+    --color-background: #0A0A0A;
+    --color-foreground: #F2EFE9;
+    --color-card: #141414;
+    --color-card-foreground: #F2EFE9;
+    --color-popover: #141414;
+    --color-popover-foreground: #F2EFE9;
+    --color-primary: #D1F82B;
+    --color-primary-foreground: #0A0A0A;
+    --color-secondary: #1F1F1F;
+    --color-secondary-foreground: #F2EFE9;
+    --color-muted: #1F1F1F;
+    --color-muted-foreground: #A3A3A3;
+    --color-accent: #FF4500;
+    --color-accent-foreground: #F2EFE9;
+    --color-border: #292929;
+    --color-input: #292929;
+    --color-ring: #D1F82B;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 98%; /* Near white for light mode */
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 160 84% 39%; /* Emerald/teal family accent */
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    
+    --success: 142.1 76.2% 36.3%;
+    --warning: 38 92% 50%;
+    --info: 217.2 91.2% 59.8%;
+
+    --radius-sm: 0.125rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 160 84% 39%; /* Emerald/teal family accent */
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Selection styles */
+  ::selection {
+    @apply bg-accent text-accent-foreground;
+  }
+
+  /* Focus visible */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+/* Scroll smooth for accessible motion */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/30 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/50;
+}
+
+@layer utilities {
+  .text-display {
+    @apply text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight;
+  }
+  .text-headline {
+    @apply text-3xl sm:text-4xl font-semibold tracking-tight;
+  }
+  .text-title {
+    @apply text-xl sm:text-2xl font-medium tracking-tight;
+  }
+  .text-body {
+    @apply text-base leading-relaxed;
+  }
+  .text-caption {
+    @apply text-sm text-muted-foreground;
+  }
+  .text-mono {
+    @apply font-mono text-sm;
+  }
+}
+
+/* Base prose styles for content/article rendering */
+.prose {
+  @apply max-w-none text-foreground;
+}
+.prose p {
+  @apply text-base leading-relaxed mb-4;
+}
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  @apply font-semibold tracking-tight text-foreground mb-4 mt-8;
+}
+.prose h1 { @apply text-3xl; }
+.prose h2 { @apply text-2xl; }
+.prose h3 { @apply text-xl; }
+.prose a {
+  @apply text-accent hover:underline underline-offset-4 font-medium transition-colors;
+}
+.prose code {
+  @apply bg-muted text-foreground px-1.5 py-0.5 rounded-md text-sm font-mono;
+}
+.prose pre {
+  @apply bg-secondary text-secondary-foreground p-4 rounded-lg overflow-x-auto mb-6 border border-border;
+}
+.prose pre code {
+  @apply bg-transparent p-0 text-inherit;
+}
+.prose blockquote {
+  @apply border-l-4 border-accent pl-4 italic text-muted-foreground my-6;
+}
+.prose ul, .prose ol {
+  @apply mb-4 pl-6;
+}
+.prose ul {
+  @apply list-disc;
+}
+.prose ol {
+  @apply list-decimal;
+}
+.prose li {
+  @apply mb-1;
+}
+
+@layer utilities {
+  .text-outline {
+    -webkit-text-stroke: 1px var(--color-foreground);
+    color: transparent;
+  }
+  .text-outline-accent {
+    -webkit-text-stroke: 1px var(--color-primary);
+    color: transparent;
+  }
+}
+
+
+@media (hover: hover) and (pointer: fine) {
+  * {
+  }
+}
+

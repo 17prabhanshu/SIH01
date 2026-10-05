@@ -46,12 +46,8 @@ def segment_storms(
             threshold_dbz = threshold_dbz or 30.0
             min_area_km2 = min_area_km2 or 16.0
 
-    # Apply a slight Gaussian blur to remove salt-and-pepper radar noise
-    # Real storms are contiguous; noise will be smoothed below threshold.
-    smoothed = ndimage.gaussian_filter(reflectivity, sigma=1.0)
-    
     # Binary mask
-    binary = smoothed >= threshold_dbz
+    binary = reflectivity >= threshold_dbz
 
     # Connected components
     labeled, n_features = ndimage.label(binary)

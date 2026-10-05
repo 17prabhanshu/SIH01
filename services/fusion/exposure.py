@@ -32,7 +32,7 @@ class ExposureEngine:
         
         headers = {"User-Agent": "Antigravity-Risk-Platform/1.0"}
         try:
-            async with httpx.AsyncClient(timeout=30.0, headers=headers) as client:
+            async with httpx.AsyncClient(timeout=3.0, headers=headers) as client:
                 response = await client.post(self.OVERPASS_URL, data={'data': query})
                 response.raise_for_status()
                 data = response.json()

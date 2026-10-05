@@ -16,8 +16,18 @@ class Sentinel1Adapter:
             return
             
         try:
-            # Re-initialize to ensure context is active
-            ee.Initialize(project=project_id)
+            key_path = os.getenv("EE_SERVICE_ACCOUNT_KEY")
+            if key_path and os.path.exists(key_path):
+                import json
+                with open(key_path, 'r') as f:
+                    key_data = json.load(f)
+                client_email = key_data.get('client_email')
+                credentials = ee.ServiceAccountCredentials(client_email, key_path)
+                ee.Initialize(credentials=credentials, project=project_id)
+                logger.info("Successfully authenticated GEE via service account.")
+            else:
+                ee.Initialize(project=project_id)
+                logger.info("Successfully authenticated GEE via default credentials.")
         except Exception as e:
             logger.error(f"GEE Initialization failed: {e}")
             raise

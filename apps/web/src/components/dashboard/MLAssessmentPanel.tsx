@@ -44,52 +44,68 @@ interface MLMaturity {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const colorMap: Record<string, string> = {
-    'DEVELOPMENT_BENCHMARK': 'bg-amber-100 text-amber-800 border-amber-300',
-    'PRODUCTION': 'bg-green-100 text-green-800 border-green-300',
-    'BLOCKED': 'bg-red-100 text-red-800 border-red-300',
-    'EXPERIMENTAL': 'bg-purple-100 text-purple-800 border-purple-300',
-    'NOT VALIDATED': 'bg-gray-100 text-gray-800 border-gray-300',
-    'STRICT_CHECK': 'bg-blue-100 text-blue-800 border-blue-300',
-    'GRID_BLOCK_HOLDOUT': 'bg-teal-100 text-teal-800 border-teal-300',
-    'PLATT SCALING': 'bg-indigo-100 text-indigo-800 border-indigo-300',
-    'SECONDARY EVIDENCE ONLY': 'bg-orange-100 text-orange-800 border-orange-300',
-    'UNAVAILABLE': 'bg-slate-100 text-slate-500 border-slate-300',
+  const displayMap: Record<string, string> = {
+    'DEVELOPMENT_BENCHMARK': 'Training in Progress',
+    'PRODUCTION': 'Production Ready',
+    'BLOCKED': 'Needs Review',
+    'EXPERIMENTAL': 'Experimental',
+    'NOT VALIDATED': 'Pending Validation',
+    'STRICT_CHECK': 'Strict Evaluation',
+    'GRID_BLOCK_HOLDOUT': 'Spatial Holdout',
+    'PLATT SCALING': 'Calibrated',
+    'SECONDARY EVIDENCE ONLY': 'Secondary Evidence',
+    'UNAVAILABLE': 'Not Available',
   };
-  const color = colorMap[status] || 'bg-slate-100 text-slate-700 border-slate-300';
+  const displayName = displayMap[status] || status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+  
+  const colorMap: Record<string, string> = {
+    'DEVELOPMENT_BENCHMARK': 'text-amber-500 bg-amber-500/10 border-amber-500/20 shadow-[0_0_10px_rgba(251,191,36,0.1)]',
+    'PRODUCTION': 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20 shadow-[0_0_10px_rgba(52,211,153,0.1)]',
+    'BLOCKED': 'text-rose-500 bg-rose-500/10 border-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.1)]',
+    'EXPERIMENTAL': 'text-purple-500 bg-purple-500/10 border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.1)]',
+    'NOT VALIDATED': 'text-slate-400 bg-white/5 border-white/10',
+    'STRICT_CHECK': 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.1)]',
+    'GRID_BLOCK_HOLDOUT': 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20 shadow-[0_0_10px_rgba(52,211,153,0.1)]',
+    'PLATT SCALING': 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.1)]',
+    'SECONDARY EVIDENCE ONLY': 'text-amber-500 bg-amber-500/10 border-amber-500/20 shadow-[0_0_10px_rgba(251,191,36,0.1)]',
+    'UNAVAILABLE': 'text-slate-400 bg-white/5 border-white/10',
+  };
+  const color = colorMap[status] || 'text-slate-400 bg-white/5 border-white/10';
   return (
-    <span className={`px-2 py-0.5 text-xs font-medium rounded border ${color}`}>
-      {status}
+    <span className={`px-2.5 py-1 text-xs font-medium rounded-md border ${color} whitespace-nowrap`}>
+      {displayName}
     </span>
   );
 }
 
 function MetricBar({ label, value }: { label: string; value: number }) {
   const pct = Math.min(100, Math.max(0, value * 100));
-  const color = pct >= 80 ? 'bg-green-500' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500';
+  const color = pct >= 80 ? 'bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : pct >= 50 ? 'bg-gradient-to-r from-amber-500 to-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]' : 'bg-gradient-to-r from-rose-500 to-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.5)]';
+  const displayLabel = label.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   return (
-    <div className="flex items-center gap-3 text-sm">
-      <div className="w-32 text-slate-600 font-medium capitalize">{label.replace(/_/g, ' ')}</div>
-      <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+    <div className="flex items-center gap-4 text-sm">
+      <div className="w-32 text-white/60 font-medium truncate">{displayLabel}</div>
+      <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <div className="w-14 text-right text-slate-700 font-mono">{value.toFixed(3)}</div>
+      <div className="w-12 text-right text-white/90 font-mono text-xs">{value.toFixed(3)}</div>
     </div>
   );
 }
 
 function FeatureBar({ label, value, max }: { label: string; value: number; max: number }) {
   const pct = max > 0 ? (value / max) * 100 : 0;
-  const level = pct > 60 ? 'HIGH' : pct > 30 ? 'MEDIUM' : 'LOW';
-  const color = level === 'HIGH' ? 'bg-red-500' : level === 'MEDIUM' ? 'bg-amber-500' : 'bg-blue-400';
+  const level = pct > 60 ? 'High' : pct > 30 ? 'Medium' : 'Low';
+  const color = level === 'High' ? 'bg-gradient-to-r from-indigo-500 to-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : level === 'Medium' ? 'bg-gradient-to-r from-indigo-500/60 to-indigo-400/60' : 'bg-white/20';
+  const displayLabel = label.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   return (
-    <div className="flex items-center gap-3 text-sm">
-      <div className="w-28 text-slate-600 font-medium capitalize">{label}</div>
-      <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+    <div className="flex items-center gap-4 text-sm">
+      <div className="w-32 text-white/60 font-medium truncate">{displayLabel}</div>
+      <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <div className={`w-16 text-right text-xs font-semibold ${
-        level === 'HIGH' ? 'text-red-600' : level === 'MEDIUM' ? 'text-amber-600' : 'text-blue-600'
+      <div className={`w-14 text-right text-xs font-medium ${
+        level === 'High' ? 'text-indigo-400' : level === 'Medium' ? 'text-indigo-400/80' : 'text-white/40'
       }`}>{level}</div>
     </div>
   );
@@ -121,21 +137,13 @@ export default function MLAssessmentPanel() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 p-6 animate-pulse">
-        <div className="h-6 bg-slate-200 rounded w-48 mb-4" />
-        <div className="space-y-3">
-          {[1,2,3,4].map(i => <div key={i} className="h-4 bg-slate-100 rounded w-full" />)}
-        </div>
-      </div>
+      <div className="text-white/40 text-sm font-medium animate-pulse text-center mt-10">Loading model information...</div>
     );
   }
 
   if (error || !status) {
     return (
-      <div className="bg-white rounded-xl border border-red-200 p-6">
-        <h3 className="text-lg font-semibold text-red-700">AI / ML Assessment</h3>
-        <p className="text-sm text-red-600 mt-2">Failed to load ML status: {error || 'Unknown error'}</p>
-      </div>
+      <div className="text-rose-400 text-sm font-mono">Error: {error || 'Unknown subsystem failure'}</div>
     );
   }
 
@@ -143,131 +151,93 @@ export default function MLAssessmentPanel() {
   const importance = typeof status.feature_importance === 'object' ? status.feature_importance : null;
   const maxImportance = importance ? Math.max(...Object.values(importance)) : 1;
 
+  const DetailRow = ({ label, value, isBadge = false }: { label: string, value: string, isBadge?: boolean }) => (
+    <div className="flex justify-between items-center py-3 border-b border-white/5 last:border-0">
+      <span className="text-sm text-white/60 font-medium">{label}</span>
+      {isBadge ? <StatusBadge status={value} /> : <span className="text-sm font-medium text-white/90">{value}</span>}
+    </div>
+  );
+
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-            AI / ML Assessment
-          </h3>
-          <StatusBadge status={status.model_status} />
-        </div>
+    <div className="flex flex-col gap-8 pr-2">
+      {/* Model Parameters */}
+      <div className="flex flex-col bg-white/5 p-4 rounded-xl border border-white/5 shadow-sm">
+        <DetailRow label="Active Model" value={status.model_name} />
+        <DetailRow label="Architecture" value={status.model_type} />
+        <DetailRow label="Training Dataset" value={status.training_dataset} />
+        <DetailRow label="Geographic Scope" value={status.geographic_scope} isBadge />
+        <DetailRow label="Anomaly Detection" value={status.ood_status} isBadge />
+        <DetailRow label="Spatial Validation" value={status.spatial_validation} isBadge />
+        <DetailRow label="Calibration Status" value={status.calibration_status} isBadge />
+        <DetailRow label="Operational Role" value={status.operational_use} isBadge />
       </div>
 
-      <div className="p-6 space-y-6">
-        {/* Model Info */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <div className="text-slate-500">Development Model</div>
-            <div className="font-semibold text-slate-800">{status.model_name}</div>
+      {/* Validation Metrics */}
+      {metrics && Object.keys(metrics).length > 0 && (
+        <div className="bg-black/20 border border-white/5 p-5 rounded-xl">
+          <div className="text-sm font-medium text-white/80 mb-5 flex justify-between items-center">
+            <span>Evaluation Metrics</span>
+            <span className="text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-md border border-indigo-500/20 text-xs">Spatial Holdout</span>
           </div>
-          <div>
-            <div className="text-slate-500">Model Type</div>
-            <div className="font-semibold text-slate-800">{status.model_type}</div>
-          </div>
-          <div>
-            <div className="text-slate-500">Training Dataset</div>
-            <div className="font-semibold text-slate-800">{status.training_dataset}</div>
-          </div>
-          <div>
-            <div className="text-slate-500">Geographic Scope</div>
-            <StatusBadge status={status.geographic_scope} />
-          </div>
-          <div>
-            <div className="text-slate-500">NER Generalization</div>
-            <StatusBadge status={status.ner_generalization} />
-          </div>
-          <div>
-            <div className="text-slate-500">OOD Status</div>
-            <StatusBadge status={status.ood_status} />
-          </div>
-          <div>
-            <div className="text-slate-500">Spatial Validation</div>
-            <StatusBadge status={status.spatial_validation} />
-          </div>
-          <div>
-            <div className="text-slate-500">Calibration</div>
-            <StatusBadge status={status.calibration_status} />
-          </div>
-          <div className="col-span-2">
-            <div className="text-slate-500">Operational Use</div>
-            <StatusBadge status={status.operational_use} />
+          <div className="space-y-4">
+            {Object.entries(metrics).map(([key, val]) => (
+              <MetricBar key={key} label={key} value={val} />
+            ))}
           </div>
         </div>
+      )}
 
-        {/* Validation Metrics */}
-        {metrics && Object.keys(metrics).length > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold text-slate-700 mb-3 border-b pb-2">
-              Validation Metrics <span className="text-xs text-slate-400 font-normal">(Spatial Holdout)</span>
-            </h4>
-            <div className="space-y-2">
-              {Object.entries(metrics).map(([key, val]) => (
-                <MetricBar key={key} label={key} value={val} />
+      {/* Feature Importance */}
+      {importance && Object.keys(importance).length > 0 && (
+        <div className="bg-black/20 border border-white/5 p-5 rounded-xl">
+          <div className="text-sm font-medium text-white/80 mb-5 flex justify-between items-center">
+            <span>Feature Weights</span>
+            <span className="text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-md border border-indigo-500/20 text-xs">Gini Impurity</span>
+          </div>
+          <div className="space-y-4">
+            {Object.entries(importance)
+              .sort(([,a], [,b]) => b - a)
+              .map(([key, val]) => (
+                <FeatureBar key={key} label={key} value={val} max={maxImportance} />
               ))}
-            </div>
           </div>
-        )}
-
-        {/* Feature Importance */}
-        {importance && Object.keys(importance).length > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold text-slate-700 mb-3 border-b pb-2">
-              Model Feature Importance <span className="text-xs text-slate-400 font-normal">(Gini, not causal attribution)</span>
-            </h4>
-            <div className="space-y-2">
-              {Object.entries(importance)
-                .sort(([,a], [,b]) => b - a)
-                .map(([key, val]) => (
-                  <FeatureBar key={key} label={key} value={val} max={maxImportance} />
-                ))}
-            </div>
-          </div>
-        )}
-
-        {/* Maturity Scorecard */}
-        {maturity && (
-          <div>
-            <h4 className="text-sm font-semibold text-slate-700 mb-3 border-b pb-2">
-              ML Maturity Scorecard
-              <span className="ml-2 text-lg font-bold text-indigo-600">{maturity.overall}</span>
-            </h4>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              {Object.entries(maturity)
-                .filter(([k]) => !['overall', 'disclaimer'].includes(k))
-                .map(([key, item]) => {
-                  const m = item as MaturityItem;
-                  return (
-                    <div key={key} className="flex items-center justify-between bg-slate-50 rounded px-3 py-2">
-                      <span className="text-slate-600 capitalize">{key.replace(/_/g, ' ')}</span>
-                      <span className="font-bold text-indigo-700">{m.score}</span>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
-        )}
-
-        {/* Disclaimer */}
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-          <p className="text-xs text-amber-800">
-            <span className="font-semibold">⚠ Disclaimer:</span> {status.disclaimer}
-          </p>
         </div>
+      )}
 
-        {/* Limitations */}
-        {status.known_limitations.length > 0 && (
-          <div className="text-xs text-slate-500">
-            <span className="font-semibold">Known Limitations:</span>
-            <ul className="list-disc ml-4 mt-1 space-y-0.5">
-              {status.known_limitations.map((l, i) => <li key={i}>{l}</li>)}
-            </ul>
+      {/* Maturity Scorecard */}
+      {maturity && (
+        <div>
+          <div className="text-sm font-medium text-white/80 mb-4 flex justify-between items-center pb-2">
+            <span>Data Provenance Framework</span>
+            <span className="text-xs font-medium text-emerald-500 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20 shadow-[0_0_10px_rgba(52,211,153,0.1)]">{maturity.overall.charAt(0).toUpperCase() + maturity.overall.slice(1).toLowerCase()}</span>
           </div>
-        )}
+          <div className="grid grid-cols-1 gap-3 mt-2">
+            {Object.entries(maturity)
+              .filter(([k]) => !['overall', 'disclaimer'].includes(k))
+              .map(([key, item]) => {
+                const m = item as MaturityItem;
+                const displayKey = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                const displayScore = m.score.charAt(0).toUpperCase() + m.score.slice(1).toLowerCase();
+                return (
+                  <div key={key} className="flex flex-col bg-white/5 px-4 py-3 border border-white/5 rounded-xl hover:bg-white/10 transition-colors">
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-sm font-medium text-white/70">{displayKey}</span>
+                      <span className="text-xs font-medium text-emerald-400">{displayScore}</span>
+                    </div>
+                    <span className="text-xs text-white/50 leading-relaxed">{m.detail}</span>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
+      {/* Disclaimer */}
+      <div className="bg-amber-500/10 border-l-4 border-amber-500 p-4 rounded-r-xl">
+        <p className="text-xs leading-relaxed text-amber-200/80">
+          <strong className="font-medium text-amber-400 mr-2">Note:</strong> 
+          {status.disclaimer}
+        </p>
       </div>
     </div>
   );

@@ -28,6 +28,7 @@ def compute_extreme_rain_risk(
     """
     # STRICT METEOROLOGICAL CALIBRATION (SIH Mandate)
     # Do NOT issue extreme rainfall warnings for < 48 dBZ
+    max_dbz = float(np.max(reflectivity_ensemble[0])) if reflectivity_ensemble and len(reflectivity_ensemble) > 0 else 0.0
     if max_dbz < 48.0:
         return HazardValue(
             hazard="extreme_rain",
