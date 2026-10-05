@@ -1,0 +1,20 @@
+# Grid and cycle parameters
+# source: Architecture spec §3.3
+
+grid:
+  nx: 256
+  ny: 256
+  dx_m: 2000.0       # 2 km resolution
+  dy_m: 2000.0
+  projection: "aeqd"  # azimuthal equidistant, centred on radar
+
+cycle:
+  interval_minutes: 10          # IMD DWR volume scan cadence
+  context_frames: 6             # 60 min lookback
+  forecast_steps: 12            # 120 min H1 forecast
+  step_minutes: 10              # per forecast step
+
+ensemble:
+  live_members: 8               # N=8 motion-field perturbation (R18)
+  precomputed_members: 16       # N=16 STEPS-style in replay bundle
+  motion_perturbation_std: 2.0  # NEEDS VERIFICATION - pixels per step

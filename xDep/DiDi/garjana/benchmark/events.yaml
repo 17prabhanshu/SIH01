@@ -1,0 +1,18 @@
+# India Convective Benchmark (ICB) — Event Catalogue
+# Populate with 5-10 real Indian events with verifiable dates/locations
+# Each event needs: radar frames, INSAT frames, lightning, ERA5/GFS, labels
+
+events: []
+# Template:
+# - event_id: "2024_lucknow_0815"
+#   date: "2024-08-15"
+#   location: "Lucknow, UP"
+#   radar_domain: "LKO"
+#   description: "Severe thunderstorm with heavy rain"
+#   data_sources:
+#     radar: "pending"
+#     satellite: "pending"
+#     lightning: "pending"
+#     nwp: "pending"
+#   verification_labels: "pending"
+#   licence_note: "pending"

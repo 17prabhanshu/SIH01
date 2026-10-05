@@ -1,0 +1,503 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  passwordHash       String
+  name               String?
+  role               String              // SUPER_ADMIN, EDITOR, AUTHOR, CONTRIBUTOR, REVIEWER
+  avatar             String?
+  bio                String?
+  mustChangePassword Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  deletedAt          DateTime?
+
+  sessions           Session[]
+  authors            Author[]
+  uploadedMedia      MediaAsset[]
+  redirectsCreated   Redirect[]
+  auditLogs          AuditLog[]
+  contributorProfile ContributorProfile?
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Author {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name        String
+  slug        String   @unique
+  bio         String?
+  avatar      String?
+  expertise   String?
+  socialLinks String?  // JSON string
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  articlesAuthored Article[] @relation("ArticleAuthor")
+  articlesReviewed Article[] @relation("ArticleReviewer")
+  reviews          Review[]
+
+  @@index([userId])
+}
+
+model Article {
+  id                 String    @id @default(cuid())
+  title              String
+  slug               String    @unique
+  subtitle           String?
+  excerpt            String?
+  body               String    // text
+  contentType        String    // ARTICLE, NEWS, GUIDE, TUTORIAL, REVIEW, COMPARISON, EXPLAINER, RESEARCH, SECURITY_ALERT
+  status             String    // DRAFT, SUBMITTED, UNDER_REVIEW, CHANGES_REQUESTED, APPROVED, SCHEDULED, PUBLISHED, REJECTED, ARCHIVED
+  authorId           String
+  author             Author    @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  reviewerId         String?
+  reviewer           Author?   @relation("ArticleReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  categoryId         String?
+  category           Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  
+  featuredImage      String?
+  seoTitle           String?
+  seoDescription     String?
+  canonicalUrl       String?
+  ogImage            String?
+  twitterImage       String?
+  keywords           String?
+  focusKeyword       String?
+  searchIntent       String?
+  robotsDirective    String?
+  breadcrumbTitle    String?
+  sitemapInclusion   Boolean   @default(true)
+  sitemapPriority    Float?
+  sitemapChangeFreq  String?
+  redirectUrl        String?
+  schemaType         String?
+  readingTime        Int?
+  publishedAt        DateTime?
+  scheduledAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  revisions           ArticleRevision[]
+  tags                ArticleTag[]
+  externalLinks       ExternalLink[]
+  internalLinksSource InternalLink[] @relation("SourceArticle")
+  internalLinksTarget InternalLink[] @relation("TargetArticle")
+
+  @@index([status, publishedAt])
+  @@index([contentType])
+  @@index([authorId])
+  @@index([categoryId])
+}
+
+model ArticleRevision {
+  id        String   @id @default(cuid())
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  title     String
+  body      String   // text
+  authorId  String
+  createdAt DateTime @default(now())
+
+  @@index([articleId])
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String?
+  contentType String?    // which section this category belongs to like 'agents', 'tools', 'news', 'guides'
+  parentId    String?
+  parent      Category?  @relation("CategoryToCategory", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[] @relation("CategoryToCategory")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  articles Article[]
+  agents   Agent[]
+  tools    Tool[]
+
+  @@index([parentId])
+}
+
+model Tag {
+  id        String       @id @default(cuid())
+  name      String
+  slug      String       @unique
+  createdAt DateTime     @default(now())
+  
+  articles  ArticleTag[]
+}
+
+model ArticleTag {
+  id        String  @id @default(cuid())
+  articleId String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, tagId])
+  @@index([tagId])
+  @@index([articleId])
+}
+
+model Agent {
+  id           String    @id @default(cuid())
+  name         String
+  slug         String    @unique
+  description  String?   // text
+  overview     String?   // text
+  companyId    String?
+  company      Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  categoryId   String?
+  category     Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  capabilities String?   // JSON string
+  modelUsed    String?
+  integrations String?   // JSON string
+  pricing      String?
+  pricingModel String?
+  deployment   String?
+  openSource   Boolean?
+  mcpSupport   Boolean?
+  toolUsage    Boolean?
+  computerUse  Boolean?
+  browserUse   Boolean?
+  interfaces   String?   // JSON string
+  securityInfo String?   // text
+  privacyInfo  String?   // text
+  officialUrl  String?
+  docsUrl      String?
+  logoUrl      String?
+  status       String    // DRAFT, PUBLISHED, ARCHIVED
+  featured     Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  @@index([status])
+  @@index([categoryId])
+  @@index([companyId])
+}
+
+model Tool {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?   // text
+  overview    String?   // text
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  companyId   String?
+  company     Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  language    String?
+  framework   String?
+  openSource  Boolean?
+  cloudHosted Boolean?
+  selfHosted  Boolean?
+  pricing     String?
+  officialUrl String?
+  docsUrl     String?
+  githubUrl   String?
+  logoUrl     String?
+  status      String    // DRAFT, PUBLISHED, ARCHIVED
+  featured    Boolean?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([status])
+  @@index([categoryId])
+  @@index([companyId])
+}
+
+model Model {
+  id                String    @id @default(cuid())
+  name              String
+  slug              String    @unique
+  provider          String?
+  family            String?
+  modality          String?
+  contextWindow     Int?
+  reasoning         Boolean?
+  toolCalling       Boolean?
+  structuredOutputs Boolean?
+  vision            Boolean?
+  audio             Boolean?
+  coding            Boolean?
+  agentSuitability  String?
+  deploymentType    String?
+  apiAvailable      Boolean?
+  pricingInput      String?
+  pricingOutput     String?
+  docsUrl           String?
+  releaseDate       DateTime?
+  status            String    // ACTIVE, DEPRECATED, PREVIEW
+  featured          Boolean?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([status])
+}
+
+model Framework {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?  // text
+  language    String?
+  category    String?
+  officialUrl String?
+  docsUrl     String?
+  githubUrl   String?
+  logoUrl     String?
+  openSource  Boolean?
+  stars       Int?
+  status      String   // DRAFT, PUBLISHED, ARCHIVED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+}
+
+model MCPServer {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?  // text
+  provider    String?
+  category    String?
+  officialUrl String?
+  docsUrl     String?
+  githubUrl   String?
+  status      String   // DRAFT, PUBLISHED, ARCHIVED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+}
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  website     String?
+  logoUrl     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  agents      Agent[]
+  tools       Tool[]
+}
+
+model SecurityAlert {
+  id               String    @id @default(cuid())
+  title            String
+  slug             String    @unique
+  severity         String    // CRITICAL, HIGH, MEDIUM, LOW, INFO
+  affectedSystems  String?
+  affectedVersions String?
+  summary          String?   // text
+  technicalDetails String?   // text
+  mitigation       String?   // text
+  references       String?   // JSON string
+  cveId            String?
+  cweId            String?
+  affectedVendors  String?
+  status           String    // ACTIVE, RESOLVED, MONITORING
+  publishedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([status])
+  @@index([severity])
+}
+
+model GlossaryTerm {
+  id                   String   @id @default(cuid())
+  term                 String
+  slug                 String   @unique
+  definition           String?  // text
+  simpleExplanation    String?  // text
+  technicalExplanation String?  // text
+  relatedTermIds       String?  // JSON string
+  canonicalUrl         String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model MediaAsset {
+  id           String   @id @default(cuid())
+  filename     String
+  url          String
+  altText      String?
+  caption      String?
+  description  String?
+  attribution  String?
+  copyright    String?
+  mimeType     String?
+  size         Int?
+  width        Int?
+  height       Int?
+  uploadedById String?
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([uploadedById])
+}
+
+model ExternalLink {
+  id           String   @id @default(cuid())
+  url          String
+  anchorText   String?
+  relAttribute String?  // FOLLOW, NOFOLLOW, SPONSORED, UGC
+  articleId    String?
+  article      Article? @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@index([articleId])
+}
+
+model InternalLink {
+  id               String   @id @default(cuid())
+  sourceArticleId  String
+  sourceArticle    Article  @relation("SourceArticle", fields: [sourceArticleId], references: [id], onDelete: Cascade)
+  targetArticleId  String?
+  targetArticle    Article? @relation("TargetArticle", fields: [targetArticleId], references: [id], onDelete: SetNull)
+  targetEntityType String?
+  targetEntityId   String?
+  anchorText       String?
+  approved         Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  @@index([sourceArticleId])
+  @@index([targetArticleId])
+}
+
+model Redirect {
+  id          String   @id @default(cuid())
+  source      String   @unique
+  destination String
+  statusCode  Int      @default(301)
+  reason      String?
+  active      Boolean  @default(true)
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([createdById])
+  @@index([active])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String
+  metadata   String?  // JSON string
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+}
+
+model NewsletterSubscriber {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  status         String    // ACTIVE, UNSUBSCRIBED
+  subscribedAt   DateTime?
+  unsubscribedAt DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([status])
+}
+
+model Comparison {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  description String?   // text
+  entityType  String    // 'agent', 'tool', 'model'
+  entityIds   String    // JSON string - array of ids
+  body        String?   // text
+  authorId    String?
+  status      String    // DRAFT, PUBLISHED
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status])
+}
+
+model Review {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  entityType  String
+  entityId    String
+  body        String?   // text
+  rating      Int?
+  authorId    String
+  author      Author    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  status      String    // DRAFT, PUBLISHED
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([authorId])
+  @@index([status])
+  @@index([entityType, entityId])
+}
+
+model ContributorProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName String
+  bio         String?  // text
+  avatar      String?
+  expertise   String?
+  socialLinks String?  // JSON string
+  website     String?
+  approved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String?
+  message   String   // text
+  status    String   @default("UNREAD") // UNREAD, READ, REPLIED
+  createdAt DateTime @default(now())
+
+  @@index([status])
+}

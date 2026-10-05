@@ -1,0 +1,14 @@
+# Observability Index component weights
+# source: internal design decision (architecture §3.4)
+
+oi_weights:
+  radar_coverage: 0.30
+  radar_freshness: 0.25
+  sat_geometry: 0.15
+  ltg_coverage: 0.15
+  env_resolution: 0.15
+
+# OI-based alert downgrade
+oi_alert_rules:
+  low_oi_threshold: 0.3    # Below this, auto-downgrade to outlook
+  medium_oi_threshold: 0.6 # Below this, require human confirmation

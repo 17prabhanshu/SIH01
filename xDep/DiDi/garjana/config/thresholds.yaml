@@ -1,0 +1,46 @@
+# Forecast and hazard thresholds
+# All values MUST have a source comment or NEEDS VERIFICATION
+
+hazard_thresholds:
+  lightning:
+    flash_density_per_km2_per_hour: 0.1  # NEEDS VERIFICATION
+    flash_rate_jump_factor: 2.0          # source: Schultz et al. lightning jump
+    jump_window_minutes: 15              # NEEDS VERIFICATION
+
+  heavy_rain:
+    rate_mm_per_hour:
+      moderate: 15.0   # source: IMD classification - NEEDS VERIFICATION
+      heavy: 64.0      # source: IMD "heavy rain" - NEEDS VERIFICATION
+      very_heavy: 124.0 # source: IMD "very heavy rain" - NEEDS VERIFICATION
+      extremely_heavy: 204.0  # source: IMD classification - NEEDS VERIFICATION
+
+  extreme_rain_rate:
+    # "Cloudburst-type" extreme rate - NEVER call it "cloudburst forecast" (R4)
+    rate_mm_per_hour: 75.0
+    min_area_km2: 8.0
+    validation_tier: "experimental"
+
+  hail:
+    # VIL density threshold for hail
+    vil_density_kg_m3: 3.5  # NEEDS VERIFICATION
+    # Height of high-dBZ core above freezing level
+    dbz_above_freezing_min_km: 2.0  # NEEDS VERIFICATION
+    # MESH-style threshold
+    mesh_mm: 25.0  # NEEDS VERIFICATION
+    validation_tier: "experimental"
+
+  wind:
+    # Environmental DCAPE threshold for damaging wind risk
+    dcape_threshold_j_kg: 800.0  # NEEDS VERIFICATION
+    # Never output a wind speed number (R4)
+    validation_tier: "experimental"
+
+# Segmentation thresholds
+segmentation:
+  reflectivity_dbz:
+    detection: 30.0    # source: common practice
+    severe_core: 40.0  # source: common practice
+  min_area_km2: 16.0   # 4 cells at 2 km = 4*4 = 16 km^2
+
+# Exceedance probability thresholds for H1 ensemble
+exceedance_thresholds_dbz: [20, 30, 40, 50]

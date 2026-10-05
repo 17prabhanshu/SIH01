@@ -1,0 +1,55 @@
+# Degradation mode state machine (architecture §3.13)
+# Mode computed from source freshness; transitions logged
+
+modes:
+  FULL:
+    description: "All sources available: radar + INSAT + lightning + NWP"
+    requires:
+      radar_age_max_minutes: 15
+      satellite_age_max_minutes: 30
+      lightning_age_max_minutes: 30
+      nwp_age_max_hours: 6
+    capabilities: ["h1_full", "h2_ci", "h3_outlook", "all_hazards"]
+
+  NO_LIGHTNING:
+    description: "Proxy lightning model active; lightning hazard tier drops to proxy"
+    requires:
+      radar_age_max_minutes: 15
+      satellite_age_max_minutes: 30
+      nwp_age_max_hours: 6
+    capabilities: ["h1_full", "h2_ci", "h3_outlook", "all_hazards"]
+    overrides:
+      lightning_tier: "proxy"
+
+  RADAR_SAT:
+    description: "No lightning, no fresh NWP"
+    requires:
+      radar_age_max_minutes: 15
+      satellite_age_max_minutes: 30
+    capabilities: ["h1_partial", "h2_ci_limited"]
+
+  RADAR_ONLY:
+    description: "Only radar available"
+    requires:
+      radar_age_max_minutes: 15
+    capabilities: ["h1_radar_only"]
+
+  SAT_ONLY:
+    description: "CI + coarse motion; no cell-level forecasts"
+    requires:
+      satellite_age_max_minutes: 30
+    capabilities: ["h2_ci", "coarse_motion"]
+
+  BASELINE:
+    description: "Pure extrapolation / climatology"
+    requires: {}
+    capabilities: ["persistence", "climatology"]
+
+# Transition order (checked top to bottom; first match wins)
+transition_order:
+  - FULL
+  - NO_LIGHTNING
+  - RADAR_SAT
+  - RADAR_ONLY
+  - SAT_ONLY
+  - BASELINE

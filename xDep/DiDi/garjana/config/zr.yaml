@@ -1,0 +1,32 @@
+# Z-R relationship parameters for rain rate estimation
+# R = (Z / a) ^ (1/b)
+# source: various; tropical default from Rosenfeld & Ulbrich 2003 - NEEDS VERIFICATION
+
+zr_relationships:
+  # Default tropical convective
+  tropical_convective:
+    a: 250.0    # source: NEEDS VERIFICATION - tropical convective
+    b: 1.2      # source: NEEDS VERIFICATION
+    description: "Tropical convective Z-R (default)"
+
+  # Marshall-Palmer (stratiform)
+  marshall_palmer:
+    a: 200.0    # source: Marshall & Palmer 1948
+    b: 1.6
+    description: "Standard Marshall-Palmer"
+
+  # WSR-88D convective (for comparison with SEVIR)
+  wsr88d_convective:
+    a: 300.0    # source: NEXRAD default
+    b: 1.4
+    description: "WSR-88D convective default"
+
+default: "marshall_palmer"
+
+# Reflectivity thresholds for categorical verification
+reflectivity_thresholds_dbz:
+  light: 20.0
+  moderate: 30.0
+  heavy: 40.0
+  severe: 50.0
+  extreme: 55.0
